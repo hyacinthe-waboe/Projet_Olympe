@@ -1,0 +1,17 @@
+# server/docker-compose.yml
+version: '3.8'
+services:
+  db_Olympe:
+    image: postgres:13
+    restart: always
+    environment:
+      POSTGRES_USER: user_occitel
+      POSTGRES_PASSWORD: Jj''K+&-P2_f}L2}
+      POSTGRES_DB: occitel_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

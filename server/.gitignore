@@ -3,3 +3,4 @@ node_modules
 
 # Fichiers d'environnement 
 .env
+/generated/prisma
