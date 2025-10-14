@@ -1,1 +1,0 @@
-const element = <h1>Bonjour, monde!</h1>;
