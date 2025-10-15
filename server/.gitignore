@@ -1,6 +1,10 @@
-# Dépendances
-node_modules
 
-# Fichiers d'environnement 
-.env
-/generated/prisma
+###> symfony/framework-bundle ###
+/.env.local
+/.env.local.php
+/.env.*.local
+/config/secrets/prod/prod.decrypt.private.php
+/public/bundles/
+/var/
+/vendor/
+###< symfony/framework-bundle ###
