@@ -201,4 +201,3 @@ export default function HomePage() {
   );
 }
 
-<div className="h-10 bg-red-500"></div>
