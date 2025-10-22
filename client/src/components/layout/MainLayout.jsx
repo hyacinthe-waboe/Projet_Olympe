@@ -1,6 +1,7 @@
 // src/components/layout/MainLayout.jsx
 
 import React from 'react';
+// NavLink est importé pour gérer la navigation active
 import { NavLink, Outlet } from 'react-router-dom';
 import logo from '../../assets/logo.png';
 
@@ -23,16 +24,12 @@ const MailIcon = () => ( // Ceci sera pour les emails
 const FileTextIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
 );
-const LayoutDashboardIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-);
 const VoicemailIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="5.5" cy="11.5" r="4.5"></circle><circle cx="18.5" cy="11.5" r="4.5"></circle><line x1="5.5" y1="16" x2="18.5" y2="16"></line></svg>
 );
 const BellIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
 );
-// --- NOUVELLE ICÔNE POUR LES MESSAGES (CHAT) ---
 const MessageSquareIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
 );
@@ -61,12 +58,12 @@ const Sidebar = () => {
             </div>
             <nav className="flex flex-col items-center space-y-4">
                 <NavLink to="/" className={navLinkClasses} end><HomeIcon /></NavLink>
-                <NavLink to="/dashboard" className={navLinkClasses}><LayoutDashboardIcon /></NavLink>
+                {/* Icône Dashboard supprimée */}
                 <NavLink to="/phone" className={navLinkClasses}><PhoneIcon /></NavLink>
                 <NavLink to="/users" className={navLinkClasses}><UserIcon /></NavLink>
                 <NavLink to="/calendar" className={navLinkClasses}><CalendarIcon /></NavLink>
-                <NavLink to="/emails" className={navLinkClasses}><MailIcon /></NavLink> {/* <-- MAINTENANT POUR LES EMAILS */}
-                <NavLink to="/messages" className={navLinkClasses}><MessageSquareIcon /></NavLink> {/* <-- NOUVELLE ICÔNE POUR LES MESSAGES */}
+                <NavLink to="/emails" className={navLinkClasses}><MailIcon /></NavLink>
+                <NavLink to="/messages" className={navLinkClasses}><MessageSquareIcon /></NavLink>
                 <NavLink to="/tasks" className={navLinkClasses}><TaskIcon /></NavLink>
                 <NavLink to="/files" className={navLinkClasses}><FileTextIcon /></NavLink>
             </nav>
@@ -75,7 +72,7 @@ const Sidebar = () => {
 };
 
 
-// --- Composant: Header (copié depuis HomePage) ---
+// --- Composant: Header (MODIFIÉ) ---
 const Header = () => (
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
         <div className="flex items-center space-x-2 text-gray-600">
@@ -102,9 +99,17 @@ const Header = () => (
                 <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg" title="Aide">
                     <HelpCircleIcon />
                 </button>
-                <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg" title="Réglages">
+                
+                {/* Bouton Paramètres transformé en NavLink */}
+                <NavLink 
+                    to="/settings" 
+                    className={({ isActive }) => 
+                        `p-2 rounded-lg ${isActive ? 'bg-gray-200 text-gray-800' : 'text-gray-500 hover:bg-gray-100'}`
+                    }
+                    title="Réglages"
+                >
                     <SettingsIcon />
-                </button>
+                </NavLink>
             </nav>
 
             <div className="w-px h-6 bg-gray-200"></div>
