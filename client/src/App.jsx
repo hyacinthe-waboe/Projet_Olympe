@@ -12,7 +12,11 @@ import TasksPage from './pages/TasksPage.jsx';
 import EmailsPage from './pages/EmailsPage.jsx';
 import ContactPage from './pages/ContactPage.jsx';
 import FilesPage from './pages/FilesPage.jsx';
-import SettingsPage from './pages/SettingsPage.jsx'; // <-- 1. NOUVEL IMPORT
+import SettingsPage from './pages/SettingsPage.jsx';
+import VoicemailPage from './pages/VoicemailPage.jsx';
+import InternalChatPage from './pages/InternalChatPage.jsx';
+import NotificationsPage from './pages/NotificationsPage.jsx';
+import HelpPage from './pages/HelpPage.jsx'; // <-- 1. NOUVEL IMPORT
 
 export default function App() {
   return (
@@ -26,7 +30,11 @@ export default function App() {
         <Route path="/tasks" element={<TasksPage />} />
         <Route path="/users" element={<ContactPage />} />
         <Route path="/files" element={<FilesPage />} />
-        <Route path="/settings" element={<SettingsPage />} /> {/* <-- 2. NOUVELLE ROUTE */}
+        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/voicemail" element={<VoicemailPage />} />
+        <Route path="/internal-chat" element={<InternalChatPage />} />
+        <Route path="/notifications" element={<NotificationsPage />} />
+        <Route path="/help" element={<HelpPage />} /> {/* <-- 2. NOUVELLE ROUTE */}
       </Route>
     </Routes>
   );

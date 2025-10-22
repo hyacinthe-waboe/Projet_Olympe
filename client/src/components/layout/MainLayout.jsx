@@ -18,7 +18,7 @@ const UserIcon = () => (
 const CalendarIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
 );
-const MailIcon = () => ( // Ceci sera pour les emails
+const MailIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
 );
 const FileTextIcon = () => (
@@ -44,7 +44,7 @@ const TaskIcon = () => (
 );
 
 
-// --- Composant: Barre latérale principale (MODIFIÉE) ---
+// --- Composant: Barre latérale principale (Sidebar) ---
 const Sidebar = () => {
     const navLinkClasses = ({ isActive }) =>
       isActive
@@ -53,12 +53,16 @@ const Sidebar = () => {
 
     return (
         <div className="h-screen bg-white border-r border-gray-200 flex flex-col items-center py-4 space-y-6">
-            <div className="w-12 h-12 flex items-center justify-center rounded-lg">
-                <img src={logo} alt="Logo Projet Olympe" className="w-full h-full object-contain" />
-            </div>
+            
+            {/* --- LOGO MODIFIÉ --- */}
+            {/* Le 'div' a été remplacé par un 'NavLink' pointant vers la racine "/" */}
+            <NavLink to="/" title="Accueil - Dashboard" className="w-12 h-12 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors">
+                {/* J'ai ajouté p-1 à l'image pour que le fond au survol n'y soit pas collé */}
+                <img src={logo} alt="Logo Projet Olympe" className="w-full h-full object-contain p-1" />
+            </NavLink>
+
             <nav className="flex flex-col items-center space-y-4">
                 <NavLink to="/" className={navLinkClasses} end><HomeIcon /></NavLink>
-                {/* Icône Dashboard supprimée */}
                 <NavLink to="/phone" className={navLinkClasses}><PhoneIcon /></NavLink>
                 <NavLink to="/users" className={navLinkClasses}><UserIcon /></NavLink>
                 <NavLink to="/calendar" className={navLinkClasses}><CalendarIcon /></NavLink>
@@ -72,7 +76,7 @@ const Sidebar = () => {
 };
 
 
-// --- Composant: Header (MODIFIÉ) ---
+// --- Composant: Header ---
 const Header = () => (
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
         <div className="flex items-center space-x-2 text-gray-600">
@@ -87,20 +91,53 @@ const Header = () => (
             <div className="text-xs p-2 bg-gray-100 rounded-lg">Le client M. MARTIN a choisi d'enregistrer tous les appels</div>
             
             <nav className="flex items-center space-x-2">
-                <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg" title="Messagerie vocale">
-                    <VoicemailIcon />
-                </button>
-                <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg" title="Messagerie">
-                    <MessageSquareIcon />
-                </button>
-                <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg relative" title="Notifications">
-                    <BellIcon />
-                </button>
-                <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg" title="Aide">
-                    <HelpCircleIcon />
-                </button>
                 
-                {/* Bouton Paramètres transformé en NavLink */}
+                {/* Messagerie Vocale */}
+                <NavLink 
+                    to="/voicemail" 
+                    className={({ isActive }) => 
+                        `p-2 rounded-lg ${isActive ? 'bg-gray-200 text-gray-800' : 'text-gray-500 hover:bg-gray-100'}`
+                    }
+                    title="Messagerie vocale"
+                >
+                    <VoicemailIcon />
+                </NavLink>
+
+                {/* Chat Interne */}
+                <NavLink 
+                    to="/internal-chat" 
+                    className={({ isActive }) => 
+                        `p-2 rounded-lg ${isActive ? 'bg-gray-200 text-gray-800' : 'text-gray-500 hover:bg-gray-100'}`
+                    }
+                    title="Chat Interne"
+                >
+                    <MessageSquareIcon />
+                </NavLink>
+                
+                {/* Notifications */}
+                <NavLink 
+                    to="/notifications" 
+                    className={({ isActive }) => 
+                        `relative p-2 rounded-lg ${isActive ? 'bg-gray-200 text-gray-800' : 'text-gray-500 hover:bg-gray-100'}`
+                    }
+                    title="Notifications"
+                >
+                    <BellIcon />
+                    <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
+                </NavLink>
+
+                {/* Aide */}
+                <NavLink 
+                    to="/help" 
+                    className={({ isActive }) => 
+                        `p-2 rounded-lg ${isActive ? 'bg-gray-200 text-gray-800' : 'text-gray-500 hover:bg-gray-100'}`
+                    }
+                    title="Aide"
+                >
+                    <HelpCircleIcon />
+                </NavLink>
+                
+                {/* Paramètres */}
                 <NavLink 
                     to="/settings" 
                     className={({ isActive }) => 
