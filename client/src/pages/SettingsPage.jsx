@@ -1,7 +1,6 @@
 // src/pages/SettingsPage.jsx
 
 import React, { useState } from 'react';
-// Importation des icônes (avec ajouts)
 import {
   FaUserCircle, FaBell, FaPalette, FaShieldAlt,
   FaCreditCard, FaQuestionCircle, FaMicrophone, FaVolumeUp,
@@ -9,8 +8,6 @@ import {
 } from 'react-icons/fa';
 
 // --- Sous-composants pour chaque section de paramètres ---
-
-// ... (ProfileSettings, NotificationSettings, AudioSettings, AppearanceSettings restent les mêmes)
 
 const ProfileSettings = () => (
   <div>
@@ -24,16 +21,29 @@ const ProfileSettings = () => (
           <button className="text-sm font-semibold bg-gray-200 px-4 py-2 rounded-lg hover:bg-gray-300">Changer l'avatar</button>
         </div>
       </div>
+      
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* AJOUT : Champ Civilité */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Civilité</label>
+          <select className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+            <option>Monsieur</option>
+            <option>Madame</option>
+          </select>
+        </div>
+
         <div>
           <label className="block text-sm font-medium text-gray-700">Nom complet</label>
           <input type="text" defaultValue="John DOE" className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"/>
         </div>
-        <div>
+
+        {/* L'email prend toute la largeur sur la ligne suivante pour un meilleur visuel */}
+        <div className="md:col-span-2">
           <label className="block text-sm font-medium text-gray-700">Adresse email</label>
           <input type="email" defaultValue="john.doe@telemed.com" className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"/>
         </div>
       </div>
+
        <div className="pt-4 border-t border-gray-200">
          <button className="px-5 py-2 bg-gray-800 text-white font-semibold rounded-lg hover:bg-gray-700">Enregistrer les modifications</button>
       </div>
@@ -101,8 +111,6 @@ const AppearanceSettings = () => (
     </div>
   </div>
 );
-
-// --- SECTIONS MISES À JOUR AVEC UN CONTENU PROPRE ---
 
 const SecuritySettings = () => (
   <div>
@@ -218,7 +226,6 @@ export default function SettingsPage() {
       case 'notifications': return <NotificationSettings />;
       case 'audio': return <AudioSettings />;
       case 'appearance': return <AppearanceSettings />;
-      // --- APPEL DES NOUVELLES SECTIONS ---
       case 'security': return <SecuritySettings />;
       case 'subscription': return <SubscriptionSettings />;
       case 'help': return <HelpSettings />;

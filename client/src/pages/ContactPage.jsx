@@ -9,9 +9,10 @@ import {
 
 // --- Données Fictives Initiales ---
 const initialContacts = [
-  { id: 'c1', type: 'client', name: 'Dr. Martin Dupont', specialty: 'Médecin Généraliste', avatar: 'M', color: 'bg-blue-600', phone: '01 23 45 67 89', email: 'martin.dupont@cabinet.fr', address: '12 Rue de la Paix, 75001 Paris' },
-  { id: 'c2', type: 'client', name: 'Mme. Sophie Lefevre', specialty: 'Kinésithérapeute', avatar: 'S', color: 'bg-green-600', phone: '04 98 76 54 32', email: 'sophie.lefevre@kine.fr', address: '34 Avenue des Pins, 13008 Marseille' },
-  { id: 'p1', type: 'patient', name: 'M. DURAND Patrice', avatar: 'P', color: 'bg-gray-700', phone: '07 66 55 44 33', email: 'durand.patrice@gmail.com', birthDate: '1980-01-01', linkedClient: 'c1' },
+  // AJOUT : birthDate pour les clients
+  { id: 'c1', type: 'client', name: 'Dr. Martin Dupont', specialty: 'Médecin Généraliste', avatar: 'M', color: 'bg-blue-600', phone: '01 23 45 67 89', email: 'martin.dupont@cabinet.fr', address: '12 Rue de la Paix, 75001 Paris', birthDate: '1975-04-12' },
+  { id: 'c2', type: 'client', name: 'Mme. Sophie Lefevre', specialty: 'Kinésithérapeute', avatar: 'S', color: 'bg-green-600', phone: '04 98 76 54 32', email: 'sophie.lefevre@kine.fr', address: '34 Avenue des Pins, 13008 Marseille', birthDate: '1982-11-23' },
+  { id: 'p1', type: 'appelant', name: 'M. DURAND Patrice', avatar: 'P', color: 'bg-gray-700', phone: '07 66 55 44 33', email: 'durand.patrice@gmail.com', birthDate: '1980-01-01', linkedClient: 'c1' },
 ];
 // -------------------------
 
@@ -19,8 +20,9 @@ const initialContacts = [
 // --- MODALE N°1 : FORMULAIRE CLIENT ---
 const ClientFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
 
+  // AJOUT : birthDate dans l'état initial
   const getInitialState = () => ({
-    name: '', phone: '', email: '', specialty: '', address: ''
+    name: '', phone: '', email: '', specialty: '', address: '', birthDate: ''
   });
 
   const [formData, setFormData] = useState(getInitialState());
@@ -65,6 +67,10 @@ const ClientFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
               <FormInput label="Téléphone" name="phone" value={formData.phone || ''} onChange={handleChange} />
               <FormInput label="Email" name="email" type="email" value={formData.email || ''} onChange={handleChange} />
             </div>
+            
+            {/* AJOUT : Champ Date de naissance pour le Client */}
+            <FormInput label="Date de naissance" name="birthDate" type="date" value={formData.birthDate || ''} onChange={handleChange} />
+
             <hr className="my-2" />
             <FormInput label="Spécialité (ex: Kinésithérapeute)" name="specialty" value={formData.specialty || ''} onChange={handleChange} />
             <FormInput label="Adresse" name="address" value={formData.address || ''} onChange={handleChange} />
@@ -84,12 +90,12 @@ const ClientFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
 };
 
 
-// --- MODALE N°2 : FORMULAIRE PATIENT ---
-const PatientFormModal = ({ isOpen, onClose, onSubmit, initialData, clientList = [] }) => {
+// --- MODALE N°2 : FORMULAIRE APPELANT ---
+const AppelantFormModal = ({ isOpen, onClose, onSubmit, initialData, clientList = [] }) => {
 
   const getInitialState = () => ({
     name: '', phone: '', email: '', birthDate: '',
-    linkedClientName: '' // Champ temporaire pour l'autocomplétion
+    linkedClientName: ''
   });
 
   const [formData, setFormData] = useState(getInitialState());
@@ -97,14 +103,12 @@ const PatientFormModal = ({ isOpen, onClose, onSubmit, initialData, clientList =
   useEffect(() => {
     if (isOpen) {
       if (initialData) {
-        // Mode "Edit" : On a un ID, il faut trouver le nom
         const client = clientList.find(c => c.id === initialData.linkedClient);
         setFormData({
           ...initialData,
-          linkedClientName: client ? client.name : '' // Afficher le nom
+          linkedClientName: client ? client.name : ''
         });
       } else {
-        // Mode "Add"
         setFormData(getInitialState());
       }
     }
@@ -119,10 +123,10 @@ const PatientFormModal = ({ isOpen, onClose, onSubmit, initialData, clientList =
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSubmit(formData); // On envoie le formData (avec 'linkedClientName')
+    onSubmit(formData);
   };
 
-  const modalTitle = initialData ? "Modifier le Patient" : "Ajouter un Patient";
+  const modalTitle = initialData ? "Modifier l'Appelant" : "Ajouter un Appelant";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
@@ -143,16 +147,14 @@ const PatientFormModal = ({ isOpen, onClose, onSubmit, initialData, clientList =
             <hr className="my-2" />
             <FormInput label="Date de naissance" name="birthDate" type="date" value={formData.birthDate || ''} onChange={handleChange} />
 
-            {/* Champ d'autocomplétion */}
             <FormInput
               label="Médecin traitant (tapez pour voir les suggestions)"
-              name="linkedClientName" // On modifie le nom du médecin
+              name="linkedClientName"
               value={formData.linkedClientName || ''}
               onChange={handleChange}
-              list="client-datalist" // On lie l'input au datalist
+              list="client-datalist"
             />
 
-            {/* La Datalist n'est rendue que si des clients existent */}
             {clientList.length > 0 && (
               <datalist id="client-datalist">
                 {clientList.map(client => (
@@ -191,7 +193,7 @@ const FormInput = ({ label, name, type = 'text', value, onChange, required = fal
       value={value}
       onChange={onChange}
       required={required}
-      list={list} // Ajout de la prop 'list' pour le datalist
+      list={list}
       className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
     />
   </div>
@@ -200,27 +202,24 @@ const FormInput = ({ label, name, type = 'text', value, onChange, required = fal
 
 // --- COMPOSANT PRINCIPAL DE LA PAGE ---
 export default function ContactPage() {
-  const [activeTab, setActiveTab] = useState('clients'); // 'clients' | 'patients'
+  const [activeTab, setActiveTab] = useState('clients'); // 'clients' | 'appelants'
   const [searchTerm, setSearchTerm] = useState('');
 
   const [contacts, setContacts] = useState(initialContacts);
   const [selectedContact, setSelectedContact] = useState(initialContacts[0]);
 
-  // Deux états pour deux modales
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
-  const [isPatientModalOpen, setIsPatientModalOpen] = useState(false);
+  const [isAppelantModalOpen, setIsAppelantModalOpen] = useState(false);
 
   const [contactToEdit, setContactToEdit] = useState(null);
 
-  // Liste mémorisée des clients (pour la dropdown/datalist)
   const clientList = useMemo(
     () => contacts.filter(c => c.type === 'client'),
     [contacts]
   );
 
-  // Liste filtrée pour l'affichage à gauche (CORRIGÉE)
   const filteredContacts = useMemo(() => {
-    const desiredType = activeTab === 'clients' ? 'client' : 'patient';
+    const desiredType = activeTab === 'clients' ? 'client' : 'appelant';
     const term = searchTerm.toLowerCase();
     return contacts.filter(contact =>
       contact.type === desiredType &&
@@ -228,13 +227,11 @@ export default function ContactPage() {
     );
   }, [activeTab, searchTerm, contacts]);
 
-  // Sélectionner automatiquement un élément pertinent quand la liste filtrée change
   useEffect(() => {
     if (filteredContacts.length === 0) {
       setSelectedContact(null);
       return;
     }
-    // si l'élément sélectionné n'est pas dans la liste filtrée, sélectionner le premier
     if (!selectedContact || !filteredContacts.some(c => c.id === selectedContact.id)) {
       setSelectedContact(filteredContacts[0]);
     }
@@ -243,26 +240,26 @@ export default function ContactPage() {
   // --- GESTION DES MODALES ---
 
   const handleOpenAddModal = () => {
-    setContactToEdit(null); // Mode "Ajout"
+    setContactToEdit(null);
     if (activeTab === 'clients') {
       setIsClientModalOpen(true);
     } else {
-      setIsPatientModalOpen(true);
+      setIsAppelantModalOpen(true);
     }
   };
 
   const handleOpenEditModal = (contact) => {
-    setContactToEdit(contact); // Mode "Edit"
+    setContactToEdit(contact);
     if (contact.type === 'client') {
       setIsClientModalOpen(true);
     } else {
-      setIsPatientModalOpen(true);
+      setIsAppelantModalOpen(true);
     }
   };
 
   const handleCloseModals = () => {
     setIsClientModalOpen(false);
-    setIsPatientModalOpen(false);
+    setIsAppelantModalOpen(false);
     setContactToEdit(null);
   };
 
@@ -281,13 +278,11 @@ export default function ContactPage() {
 
   const handleClientSubmit = (formData) => {
     if (contactToEdit) {
-      // --- Logique de MODIFICATION (Client) ---
       const updatedContact = { ...contactToEdit, ...formData };
       setContacts(prev => prev.map(c => c.id === contactToEdit.id ? updatedContact : c));
       setSelectedContact(updatedContact);
-      setSearchTerm(''); // Vider la recherche
+      setSearchTerm('');
     } else {
-      // --- Logique d'AJOUT (Client) ---
       const newContact = {
         ...formData,
         id: `c_${Date.now()}`,
@@ -297,45 +292,38 @@ export default function ContactPage() {
       };
       setContacts(prev => [newContact, ...prev]);
       setSelectedContact(newContact);
-
-      // Réinitialiser
       setSearchTerm('');
-      setActiveTab('clients'); // s'assurer d'être sur l'onglet Clients
+      setActiveTab('clients');
     }
     handleCloseModals();
   };
 
-  const handlePatientSubmit = (formData) => {
-    // Convertir le 'linkedClientName' en 'linkedClient' (ID)
+  const handleAppelantSubmit = (formData) => {
     const matchingClient = clientList.find(c => c.name === formData.linkedClientName);
 
-    const finalPatientData = {
+    const finalAppelantData = {
       ...formData,
-      linkedClient: matchingClient ? matchingClient.id : null, // On stocke l'ID
+      linkedClient: matchingClient ? matchingClient.id : null,
     };
-    delete finalPatientData.linkedClientName; // On supprime le champ temporaire
+    delete finalAppelantData.linkedClientName;
 
     if (contactToEdit) {
-      // --- Logique de MODIFICATION (Patient) ---
-      const updatedContact = { ...contactToEdit, ...finalPatientData };
+      const updatedContact = { ...contactToEdit, ...finalAppelantData };
       setContacts(prev => prev.map(c => c.id === contactToEdit.id ? updatedContact : c));
       setSelectedContact(updatedContact);
-      setSearchTerm(''); // Vider la recherche
+      setSearchTerm('');
     } else {
-      // --- Logique d'AJOUT (Patient) ---
       const newContact = {
-        ...finalPatientData,
+        ...finalAppelantData,
         id: `p_${Date.now()}`,
-        type: 'patient',
+        type: 'appelant',
         avatar: (formData.name?.charAt(0) || '?').toUpperCase(),
         color: 'bg-purple-600',
       };
       setContacts(prev => [newContact, ...prev]);
       setSelectedContact(newContact);
-
-      // Réinitialiser
       setSearchTerm('');
-      setActiveTab('patients'); // s'assurer d'être sur l'onglet Patients
+      setActiveTab('appelants');
     }
     handleCloseModals();
   };
@@ -352,7 +340,6 @@ export default function ContactPage() {
     }
     const isClient = contact.type === 'client';
 
-    // Trouver les détails du médecin lié (si c'est un patient)
     let linkedClientDetails = null;
     if (!isClient && contact.linkedClient) {
       linkedClientDetails = clientList.find(c => c.id === contact.linkedClient);
@@ -360,7 +347,7 @@ export default function ContactPage() {
 
     return (
       <div className="bg-white p-6 rounded-lg shadow-sm max-w-4xl mx-auto">
-        {/* En-tête de la fiche */}
+        {/* En-tête */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-gray-200">
           <div className="flex items-center space-x-4">
             <div className={`w-20 h-20 rounded-full ${contact.color} flex items-center justify-center text-white text-3xl font-bold`}>
@@ -369,7 +356,7 @@ export default function ContactPage() {
             <div>
               <h2 className="text-3xl font-bold text-gray-900">{contact.name}</h2>
               <p className={`text-lg ${isClient ? 'text-blue-600' : 'text-gray-600'}`}>
-                {isClient ? contact.specialty : 'Patient'}
+                {isClient ? contact.specialty : 'Appelant'}
               </p>
             </div>
           </div>
@@ -389,16 +376,17 @@ export default function ContactPage() {
           <InfoItem icon={<FaEnvelope />} label="Email" value={contact.email} />
 
           {isClient ? (
-            // Champs CLIENT
+            // Champs CLIENT (Mise à jour)
             <>
               <InfoItem icon={<FaMapMarkerAlt />} label="Adresse" value={contact.address} />
               <InfoItem icon={<FaBuilding />} label="Cabinet" value={contact.name} />
+              {/* AJOUT : Affichage Date de naissance pour le Client */}
+              <InfoItem icon={<FaBirthdayCake />} label="Date de naissance" value={contact.birthDate} />
             </>
           ) : (
-            // Champs PATIENT
+            // Champs APPELANT
             <>
               <InfoItem icon={<FaBirthdayCake />} label="Date de naissance" value={contact.birthDate} />
-              {/* Affichage du médecin traitant */}
               <div className="flex items-start space-x-3">
                 <div className="text-gray-400 mt-1"><FaUserMd /></div>
                 <div>
@@ -420,7 +408,6 @@ export default function ContactPage() {
     );
   };
 
-  // --- Composant Helper Ligne d'Info ---
   const InfoItem = ({ icon, label, value }) => (
     <div className="flex items-start space-x-3">
       <div className="text-gray-400 mt-1">{icon}</div>
@@ -431,13 +418,10 @@ export default function ContactPage() {
     </div>
   );
 
-  // --- Rendu principal de la page ---
   return (
     <div className="flex flex-1 overflow-hidden relative">
-
-      {/* --- Colonne de Gauche --- */}
+      {/* Colonne Gauche */}
       <div className="w-96 bg-white border-r border-gray-200 flex flex-col">
-        {/* Barre de recherche */}
         <div className="p-4 border-b border-gray-200">
           <div className="relative">
             <input
@@ -451,7 +435,6 @@ export default function ContactPage() {
           </div>
         </div>
 
-        {/* Bouton "Ajouter" */}
         <div className="p-4 border-b border-gray-200">
           <button
             onClick={handleOpenAddModal}
@@ -459,12 +442,11 @@ export default function ContactPage() {
           >
             <FaPlus />
             <span>
-              {activeTab === 'clients' ? 'Ajouter un client' : 'Ajouter un patient'}
+              {activeTab === 'clients' ? 'Ajouter un client' : 'Ajouter un appelant'}
             </span>
           </button>
         </div>
 
-        {/* Onglets Clients / Patients */}
         <div className="p-4 border-b border-gray-200">
           <div className="flex bg-gray-100 rounded-lg p-1">
             <button
@@ -474,15 +456,14 @@ export default function ContactPage() {
               Clients
             </button>
             <button
-              onClick={() => setActiveTab('patients')}
-              className={`flex-1 py-2 rounded-md text-sm font-semibold ${activeTab === 'patients' ? 'bg-white shadow' : 'text-gray-600'}`}
+              onClick={() => setActiveTab('appelants')}
+              className={`flex-1 py-2 rounded-md text-sm font-semibold ${activeTab === 'appelants' ? 'bg-white shadow' : 'text-gray-600'}`}
             >
-              Patients
+              Appelants
             </button>
           </div>
         </div>
 
-        {/* Liste des contacts */}
         <div className="flex-1 overflow-y-auto">
           {filteredContacts.map(contact => (
             <div
@@ -507,7 +488,7 @@ export default function ContactPage() {
         </div>
       </div>
 
-      {/* --- Colonne de Droite --- */}
+      {/* Colonne Droite */}
       <div className="flex-1 p-6 overflow-y-auto bg-gray-50">
         <ContactDetails
           contact={selectedContact}
@@ -517,7 +498,6 @@ export default function ContactPage() {
         />
       </div>
 
-      {/* --- Rendu des DEUX Modales --- */}
       <ClientFormModal
         isOpen={isClientModalOpen}
         onClose={handleCloseModals}
@@ -525,11 +505,11 @@ export default function ContactPage() {
         initialData={contactToEdit?.type === 'client' ? contactToEdit : null}
       />
 
-      <PatientFormModal
-        isOpen={isPatientModalOpen}
+      <AppelantFormModal
+        isOpen={isAppelantModalOpen}
         onClose={handleCloseModals}
-        onSubmit={handlePatientSubmit}
-        initialData={contactToEdit?.type === 'patient' ? contactToEdit : null}
+        onSubmit={handleAppelantSubmit}
+        initialData={contactToEdit?.type === 'appelant' ? contactToEdit : null}
         clientList={clientList}
       />
 

@@ -1,9 +1,12 @@
 // src/App.jsx
 import React from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 
 // --- IMPORTS ---
 import MainLayout from "./components/layout/MainLayout.jsx";
+import LoginPage from "./pages/LoginPage.jsx"; 
+
+// Tes pages existantes
 import HomePage from "./pages/HomePage.jsx";
 import TelephonePage from "./pages/TelephonePage.jsx";
 import CalendarPage from "./pages/CalendarPage.jsx";
@@ -16,12 +19,31 @@ import SettingsPage from './pages/SettingsPage.jsx';
 import VoicemailPage from './pages/VoicemailPage.jsx';
 import InternalChatPage from './pages/InternalChatPage.jsx';
 import NotificationsPage from './pages/NotificationsPage.jsx';
-import HelpPage from './pages/HelpPage.jsx'; // <-- 1. NOUVEL IMPORT
+import HelpPage from './pages/HelpPage.jsx';
+
+// --- COMPOSANT DE PROTECTION ---
+// Si pas connecté, on renvoie vers /login
+const ProtectedRoute = ({ children }) => {
+  const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+};
 
 export default function App() {
   return (
     <Routes>
-      <Route element={<MainLayout />}>
+      {/* 1. La route Login est HORS du MainLayout et est publique */}
+      <Route path="/login" element={<LoginPage />} />
+
+      {/* 2. Toutes les autres routes sont protégées et utilisent le MainLayout */}
+      <Route element={
+        <ProtectedRoute>
+          <MainLayout />
+        </ProtectedRoute>
+      }>
         <Route path="/" element={<HomePage />} />
         <Route path="/phone" element={<TelephonePage />} />
         <Route path="/calendar" element={<CalendarPage />} />
@@ -34,8 +56,11 @@ export default function App() {
         <Route path="/voicemail" element={<VoicemailPage />} />
         <Route path="/internal-chat" element={<InternalChatPage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
-        <Route path="/help" element={<HelpPage />} /> {/* <-- 2. NOUVELLE ROUTE */}
+        <Route path="/help" element={<HelpPage />} />
       </Route>
+
+      {/* Redirection par défaut : Si l'URL n'existe pas, on renvoie vers l'accueil (qui renverra vers Login si besoin) */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
