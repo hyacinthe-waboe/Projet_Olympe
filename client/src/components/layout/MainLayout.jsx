@@ -23,13 +23,13 @@ const TaskIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="24" heigh
 // --- Composant: Barre latérale principale (Sidebar) ---
 const Sidebar = () => {
     const navLinkClasses = ({ isActive }) =>
-      isActive
-        ? 'p-3 bg-gray-100 rounded-lg text-gray-700'
-        : 'p-3 text-gray-500 hover:bg-gray-100 rounded-lg';
+        isActive
+            ? 'p-3 bg-gray-100 rounded-lg text-gray-700'
+            : 'p-3 text-gray-500 hover:bg-gray-100 rounded-lg';
 
     return (
         <div className="h-screen bg-white border-r border-gray-200 flex flex-col items-center py-4 space-y-6">
-            
+
             <NavLink to="/" title="Accueil - Dashboard" className="w-12 h-12 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors">
                 <img src={logo} alt="Logo Projet Olympe" className="w-full h-full object-contain p-1" />
             </NavLink>
@@ -51,11 +51,36 @@ const Sidebar = () => {
 
 // --- Composant: Header ---
 const Header = () => {
-    // AJOUT : Hook pour la navigation (logout)
     const navigate = useNavigate();
 
+    // 1. On crée un état pour stocker les infos de l'utilisateur
+    const [user, setUser] = React.useState({ firstName: 'Chargement...', lastName: '' });
+
+    // 2. On appelle ton API Symfony au chargement du composant
+    React.useEffect(() => {
+        // On ajoute un objet de configuration après l'URL
+        fetch('http://127.0.0.1:8000/api/me', {
+            credentials: 'include', // <-- C'EST CETTE LIGNE QUI CHANGE TOUT
+            headers: {
+                'Accept': 'application/json', // <--- AJOUTE ÇA
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(res => {
+                if (!res.ok) throw new Error("Non authentifié");
+                return res.json();
+            })
+            .then(data => {
+                setUser(data);
+            })
+            .catch(err => {
+                console.error("Erreur profil:", err);
+                setUser({ firstName: 'Utilisateur', lastName: 'Inconnu' });
+            });
+    }, []);
+
     const handleLogout = () => {
-        if(window.confirm("Voulez-vous vraiment vous déconnecter ?")) {
+        if (window.confirm("Voulez-vous vraiment vous déconnecter ?")) {
             localStorage.removeItem('isAuthenticated');
             navigate('/login');
         }
@@ -70,10 +95,10 @@ const Header = () => {
                     <p className="text-sm">M. DURAND</p>
                 </div>
             </div>
-            
+
             <div className="flex items-center space-x-4">
                 <div className="text-xs p-2 bg-gray-100 rounded-lg">Le client M. MARTIN a choisi d'enregistrer tous les appels</div>
-                
+
                 <nav className="flex items-center space-x-2">
                     <NavLink to="/voicemail" className={({ isActive }) => `p-2 rounded-lg ${isActive ? 'bg-gray-200 text-gray-800' : 'text-gray-500 hover:bg-gray-100'}`} title="Messagerie vocale">
                         <VoicemailIcon />
@@ -97,18 +122,28 @@ const Header = () => {
 
                 <div className="flex items-center space-x-2">
                     <div className="text-right">
-                        <span className="font-semibold text-sm">John DOE</span>
+                        <span className="font-semibold text-sm">
+                            {/* Si le nom n'est pas encore chargé, on affiche l'email stocké au login */}
+                            {user.firstName && user.lastName && user.firstName !== 'Chargement...'
+                                ? `${user.firstName} ${user.lastName}`
+                                : (localStorage.getItem('userEmail') || "Utilisateur")}
+                        </span>
                         <p className="text-xs text-green-500 font-semibold">En ligne</p>
                     </div>
                     <div className="relative group cursor-pointer">
-                        <div className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-white text-xs">JD</div>
+                        <div className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-white text-xs font-bold">
+                            {/* Calcul sécurisé des initiales */}
+                            {user.firstName && user.firstName !== 'Chargement...' && user.firstName !== 'Utilisateur'
+                                ? `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase()
+                                : '??'}
+                        </div>
                         <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white"></span>
                     </div>
-                    
+
                     {/* BOUTON LOGOUT AJOUTÉ */}
-                    <button 
+                    <button
                         onClick={handleLogout}
-                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg ml-2" 
+                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg ml-2"
                         title="Se déconnecter"
                     >
                         <FaSignOutAlt />
@@ -121,16 +156,16 @@ const Header = () => {
 
 // --- COMPOSANT PRINCIPAL DU LAYOUT ---
 export default function MainLayout() {
-  return (
-    <div className="flex h-screen bg-gray-100 font-sans">
-      <Sidebar />
-      <div className="flex flex-col flex-1">
-        <Header />
-        
-        <main className="flex flex-1 overflow-hidden">
-          <Outlet /> 
-        </main>
-      </div>
-    </div>
-  );
+    return (
+        <div className="flex h-screen bg-gray-100 font-sans">
+            <Sidebar />
+            <div className="flex flex-col flex-1">
+                <Header />
+
+                <main className="flex flex-1 overflow-hidden">
+                    <Outlet />
+                </main>
+            </div>
+        </div>
+    );
 }

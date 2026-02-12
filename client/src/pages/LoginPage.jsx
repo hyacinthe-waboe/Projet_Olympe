@@ -9,32 +9,49 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    
-    // --- SIMULATION BACKEND ---
-    // Ici, tu mettras plus tard ton appel API vers ton serveur Node.js
-    // Pour l'instant, on accepte tout si les champs sont remplis
-    if (email === 'admin@olympe.com' && password === 'admin') {
-      
-      // On stocke la preuve de connexion
-      localStorage.setItem('isAuthenticated', 'true');
-      localStorage.setItem('userEmail', email);
+    setError(''); // On efface les anciennes erreurs
 
-      // On redirige vers l'accueil
-      navigate('/');
-    } else {
-      setError('Identifiants incorrects (Essayez: admin@olympe.com / admin)');
+    try {
+      // On envoie les données à ton serveur Symfony
+      const response = await fetch('http://127.0.0.1:8000/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        credentials: 'include', // <--- AJOUTER CECI
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Si Symfony répond "OK", on stocke les infos et on entre !
+        localStorage.setItem('isAuthenticated', 'true');
+        localStorage.setItem('userEmail', data.user);
+        // On peut aussi stocker les rôles si besoin
+        localStorage.setItem('userRoles', JSON.stringify(data.roles));
+
+        navigate('/');
+      } else {
+        // Si le mot de passe est faux ou l'utilisateur inconnu
+        setError(data.error || 'Identifiants incorrects');
+      }
+    } catch (err) {
+      // Si le serveur Symfony n'est pas lancé
+      setError("Erreur : Impossible de contacter le serveur Back-end (vérifiez qu'il est lancé sur le port 8000)");
     }
   };
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
       <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-md space-y-6">
-        
+
         {/* En-tête avec Logo */}
         <div className="flex flex-col items-center">
-           {/* Si l'image ne s'affiche pas, le texte alternatif apparaîtra */}
+          {/* Si l'image ne s'affiche pas, le texte alternatif apparaîtra */}
           <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-4">
             <img src={logo} alt="Logo" className="w-16 h-16 object-contain" />
           </div>
