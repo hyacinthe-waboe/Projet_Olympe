@@ -9,11 +9,19 @@
 ## 🔑 Endpoints disponibles
 
 ### POST /login
-Authentification utilisateur
+Authentification admin
 ```json
 {
   "username": "admin@olympe.com",
   "password": "password"
+}
+```
+
+Authentification secrétaire
+```json
+{
+  "username": "secret@olympe.com",
+  "password": "secret123"
 }
 ```
 
