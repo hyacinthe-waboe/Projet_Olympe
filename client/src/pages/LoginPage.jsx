@@ -11,37 +11,46 @@ export default function LoginPage() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setError(''); // On efface les anciennes erreurs
+    setError('');
 
     try {
-      // On envoie les données à ton serveur Symfony
       const response = await fetch('http://127.0.0.1:8000/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'Accept': 'application/json' // Important pour que Symfony sache répondre en JSON
         },
-        credentials: 'include', // <--- AJOUTER CECI
-        body: JSON.stringify({ email, password })
+        credentials: 'include', // Indispensable pour le cookie de session
+        // On mappe 'email' vers 'username' car Symfony attend 'username' par défaut
+        body: JSON.stringify({
+          username: email,
+          password: password
+        })
       });
+
+      // On vérifie d'abord si la réponse est bien du JSON
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Le serveur n'a pas répondu en JSON. Vérifiez l'URL ou les erreurs PHP.");
+      }
 
       const data = await response.json();
 
       if (response.ok) {
-        // Si Symfony répond "OK", on stocke les infos et on entre !
         localStorage.setItem('isAuthenticated', 'true');
-        localStorage.setItem('userEmail', data.user);
-        // On peut aussi stocker les rôles si besoin
-        localStorage.setItem('userRoles', JSON.stringify(data.roles));
+
+        // On sauvegarde TOUT ce que le backend nous a envoyé
+        localStorage.setItem('userEmail', data.email);
+        localStorage.setItem('userFirstName', data.firstName); // <--- Nouveau
+        localStorage.setItem('userLastName', data.lastName);   // <--- Nouveau
 
         navigate('/');
       } else {
-        // Si le mot de passe est faux ou l'utilisateur inconnu
         setError(data.error || 'Identifiants incorrects');
       }
     } catch (err) {
-      // Si le serveur Symfony n'est pas lancé
-      setError("Erreur : Impossible de contacter le serveur Back-end (vérifiez qu'il est lancé sur le port 8000)");
+      console.error(err);
+      setError("Erreur de connexion au serveur. Vérifiez qu'il est lancé.");
     }
   };
 

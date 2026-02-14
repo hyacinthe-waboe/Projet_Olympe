@@ -2,7 +2,7 @@
 
 namespace App\Controller;
 
-use Symfony\Component\HttpFoundation\JsonResponse; 
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -10,19 +10,30 @@ use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
 
 class SecurityController extends AbstractController
 {
-    #[Route(path: '/login', name: 'app_login')]
+    #[Route(path: '/login', name: 'app_login', methods: ['POST', 'GET'])]
     public function login(AuthenticationUtils $authenticationUtils): Response
     {
-        // if ($this->getUser()) {
-        //     return $this->redirectToRoute('target_path');
-        // }
+        // Si l'utilisateur est connecté
+        if ($this->getUser()) {
+            return $this->json([
+                'message' => 'Vous êtes connecté avec succès !',
+                'id' => $this->getUser()->getId(),              // <--- AJOUTÉ
+                'email' => $this->getUser()->getUserIdentifier(),
+                'firstName' => $this->getUser()->getFirstName(), // <--- AJOUTÉ (Attention majuscule N)
+                'lastName' => $this->getUser()->getLastName(),   // <--- AJOUTÉ
+                'roles' => $this->getUser()->getRoles(),
+                'status' => 'OK'
+            ]);
+        }
 
-        // get the login error if there is one
+        // Sinon, gestion d'erreur classique
         $error = $authenticationUtils->getLastAuthenticationError();
-        // last username entered by the user
         $lastUsername = $authenticationUtils->getLastUsername();
 
-        return $this->render('security/login.html.twig', ['last_username' => $lastUsername, 'error' => $error]);
+        return $this->render('security/login.html.twig', [
+            'last_username' => $lastUsername, 
+            'error' => $error
+        ]);
     }
 
     #[Route(path: '/logout', name: 'app_logout')]
@@ -43,8 +54,8 @@ class SecurityController extends AbstractController
         return $this->json([
             'id' => $user->getId(),
             'email' => $user->getUserIdentifier(),
-            'firstName' => $user->getFirstname(),
-            'lastName' => $user->getLastname(),
+            'firstName' => $user->getFirstName(),
+            'lastName' => $user->getLastName(),
             'roles' => $user->getRoles(),
         ]);
     }

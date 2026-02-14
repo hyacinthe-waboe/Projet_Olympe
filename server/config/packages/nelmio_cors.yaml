@@ -1,11 +1,14 @@
 nelmio_cors:
     defaults:
-        origin_regex: true
-        allow_origin: ["%env(CORS_ALLOW_ORIGIN)%"]
+        allow_origin: ["*"]
         allow_methods: ["GET", "OPTIONS", "POST", "PUT", "PATCH", "DELETE"]
-        allow_headers: ["Content-Type", "Authorization", "Accept"] # Ajout de Accept
+        allow_headers: ["Content-Type", "Authorization"]
         expose_headers: ["Link"]
         max_age: 3600
-        allow_credentials: true # <--- TRÈS IMPORTANT
     paths:
-        "^/": null
+        "^/":
+            allow_origin: ["http://127.0.0.1:5173"]
+            allow_credentials: true
+            allow_headers: ["Content-Type", "Authorization", "X-Requested-With"]
+            allow_methods: ["POST", "PUT", "GET", "DELETE", "OPTIONS"]
+            max_age: 3600

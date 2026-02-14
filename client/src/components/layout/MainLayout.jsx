@@ -1,8 +1,6 @@
-// src/components/layout/MainLayout.jsx
-
-import React from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'; // <-- useNavigate ajouté
-import { FaSignOutAlt } from 'react-icons/fa'; // <-- Icône logout (si tu as react-icons, sinon utilise un SVG)
+import React, { useEffect, useState } from 'react';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { FaSignOutAlt } from 'react-icons/fa';
 import logo from '../../assets/logo.png';
 
 // --- TOUTES LES ICÔNES (Je garde les tiennes intactes) ---
@@ -54,34 +52,50 @@ const Header = () => {
     const navigate = useNavigate();
 
     // 1. On crée un état pour stocker les infos de l'utilisateur
-    const [user, setUser] = React.useState({ firstName: 'Chargement...', lastName: '' });
+    const [user, setUser] = useState({ firstName: 'Chargement...', lastName: '' });
 
     // 2. On appelle ton API Symfony au chargement du composant
-    React.useEffect(() => {
-        // On ajoute un objet de configuration après l'URL
-        fetch('http://127.0.0.1:8000/api/me', {
-            credentials: 'include', // <-- C'EST CETTE LIGNE QUI CHANGE TOUT
-            headers: {
-                'Accept': 'application/json', // <--- AJOUTE ÇA
-                'Content-Type': 'application/json'
-            }
-        })
-            .then(res => {
-                if (!res.ok) throw new Error("Non authentifié");
-                return res.json();
-            })
-            .then(data => {
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                // 👇 C'EST ICI LA MODIFICATION MAJEURE 👇
+                const response = await fetch('http://127.0.0.1:8000/api/me', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include' // <--- INDISPENSABLE pour envoyer le cookie
+                });
+
+                if (!response.ok) {
+                    throw new Error("Non authentifié");
+                }
+
+                const data = await response.json();
                 setUser(data);
-            })
-            .catch(err => {
+
+                // On met à jour le localStorage au cas où
+                localStorage.setItem('userEmail', data.email);
+                localStorage.setItem('userFirstName', data.firstName);
+                localStorage.setItem('userLastName', data.lastName);
+
+            } catch (err) {
                 console.error("Erreur profil:", err);
-                setUser({ firstName: 'Utilisateur', lastName: 'Inconnu' });
-            });
+                // En cas d'erreur, on essaie de lire le localStorage
+                setUser({
+                    firstName: localStorage.getItem('userFirstName') || 'Utilisateur',
+                    lastName: localStorage.getItem('userLastName') || ''
+                });
+            }
+        };
+
+        fetchProfile();
     }, []);
 
     const handleLogout = () => {
         if (window.confirm("Voulez-vous vraiment vous déconnecter ?")) {
-            localStorage.removeItem('isAuthenticated');
+            localStorage.clear(); // On vide tout le stockage
             navigate('/login');
         }
     };
@@ -123,29 +137,23 @@ const Header = () => {
                 <div className="flex items-center space-x-2">
                     <div className="text-right">
                         <span className="font-semibold text-sm">
-                            {/* Si le nom n'est pas encore chargé, on affiche l'email stocké au login */}
-                            {user.firstName && user.lastName && user.firstName !== 'Chargement...'
+                            {user.firstName !== 'Chargement...'
                                 ? `${user.firstName} ${user.lastName}`
-                                : (localStorage.getItem('userEmail') || "Utilisateur")}
+                                : "Chargement..."}
                         </span>
                         <p className="text-xs text-green-500 font-semibold">En ligne</p>
                     </div>
-                    <div className="relative group cursor-pointer">
-                        <div className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-white text-xs font-bold">
-                            {/* Calcul sécurisé des initiales */}
-                            {user.firstName && user.firstName !== 'Chargement...' && user.firstName !== 'Utilisateur'
-                                ? `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase()
-                                : '??'}
+                    <div className="relative group cursor-pointer" title="Se déconnecter" onClick={handleLogout}>
+                        <div className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-white text-xs font-bold hover:bg-red-600 transition-colors">
+                            {user.firstName && user.firstName !== 'Chargement...'
+                                ? `${user.firstName.charAt(0)}${user.lastName ? user.lastName.charAt(0) : ''}`.toUpperCase()
+                                : '...'}
                         </div>
                         <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white"></span>
                     </div>
 
-                    {/* BOUTON LOGOUT AJOUTÉ */}
-                    <button
-                        onClick={handleLogout}
-                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg ml-2"
-                        title="Se déconnecter"
-                    >
+                    {/* Bouton de secours pour Logout */}
+                    <button onClick={handleLogout} className="text-gray-400 hover:text-red-500 ml-2">
                         <FaSignOutAlt />
                     </button>
                 </div>
