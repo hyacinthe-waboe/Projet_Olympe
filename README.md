@@ -1,10 +1,10 @@
-## 🔐 Mise à jour Backend de l'etape 1 : Accès Affectations Secrétaires
+# 🔐 Mise à jour Backend de l'etape 1 : Accès Affectations Secrétaires
 
-### 🛠️ Ce qui a été ajouté
+## 🛠️ Ce qui a été ajouté
 * **Nouveau Contrôleur :** `src/Controller/MeAssignmentController.php`
 * **Nouvelle Route :** `GET /api/me/assignments`
 
-### ❓ Pourquoi cette modification ?
+## ❓ Pourquoi cette modification ?
 1.  **Déblocage des accès (Firewall) :**
     * Les routes commençant par `/api/admin` sont strictement réservées au `ROLE_ADMIN` dans le fichier `security.yaml`.
     * Les secrétaires (rôle `ROLE_SECRETAIRE`) étaient bloquées (Erreur 403) pour consulter leurs propres affectations.
