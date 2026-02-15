@@ -44,20 +44,6 @@ php bin/console doctrine:fixtures:load
 # (Répondre 'yes' pour purger la base)
 ```
 
----
-
-## 🧪 Procédure de Test (Validation)
-
-Pour vérifier que l'étape 2 est correctement installée, suivez ces étapes :
-
-### 1. Préparation des données
-Relancez les fixtures pour injecter le médecin de test (Dr House) et son affectation à la secrétaire Sophie :
-
-```bash
-php bin/console doctrine:fixtures:load
-# Répondre 'yes' 
-```
-
 ### Étape B : Vérification Base de Données
 Vérifiez que la table `client` contient bien les données :
 
@@ -69,7 +55,7 @@ php bin/console doctrine:query:sql "SELECT COUNT(*) FROM client" "
 ### Étape C : Test du Filtrage (Vue Secrétaire)
 1. Connectez-vous sur l'interface React avec : `secret@olympe.com` / `secret123`.
 2. Ouvrez l'URL : `http://127.0.0.1:8000/api/me/assignments`
-3. **Validation** : Le JSON doit contenir l'objet `client` complet rattaché à Sophie (Gregory House).
+3. **Validation** : Le JSON doit contenir l'objet `client` complet rattaché à Sophie (Gregory House) Il doit afficher une liste contenant le secretaire Sophie et le client Gregory House.
 
 ---
 
