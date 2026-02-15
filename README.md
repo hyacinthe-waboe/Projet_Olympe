@@ -69,3 +69,53 @@ php bin/console doctrine:query:sql "SELECT COUNT(*) FROM client"
 2. **Optimisation** : Toute nouvelle route listant des affectations doit obligatoirement utiliser une jointure (`Join`) pour récupérer les infos clients afin de préserver les performances du serveur.
 3. **Sécurité** : Le filtrage par secrétaire doit toujours se faire via `$this->getUser()` et jamais via un paramètre d'URL modifiable par l'utilisateur.
 
+
+
+# 🏥 Étape 3 : Gestion des Appelants (Patients)
+
+Ce module gère l'annuaire des patients qui appellent le cabinet. L'objectif critique était d'éviter les doublons (avoir 10 fiches pour le même M. Martin).
+
+## ℹ️ 1. INFORMATIONS
+
+* **Branche Git** : `feat/backend-etape3-patients`
+* **Objectif** : Centraliser les appelants et gérer la déduplication par numéro de téléphone.
+
+---
+
+## 🛠️ 2. MODIFICATIONS BACKEND
+
+### 📂 Fichiers Créés
+* **`src/Entity/Appelant.php`** :
+    * Contient les infos patient (Nom, Prénom, Téléphone).
+    * **Sécurité** : Utilise l'attribut `#[UniqueEntity]` pour empêcher les doublons de numéros.
+    * **Relation** : ManyToMany vers `Client` (Un patient peut appeler pour plusieurs médecins).
+    * **Serialisation** : Groupe `appelant:read` pour contrôler les données exposées.
+* **`src/Repository/AppelantRepository.php`** : Gestion des requêtes SQL pour les appelants.
+* **`src/Controller/AppelantController.php`** :
+    * `GET /api/appelants/search` : Recherche rapide par téléphone.
+    * `POST /api/appelants/nouveau` : "Smart Create". Si le patient existe, on le met à jour. Sinon, on le crée.
+
+---
+
+## 🧪 3. PROTOCOLE DE VALIDATION (TESTS)
+
+Comme il n'y a pas encore d'interface graphique pour cette partie, les tests se font via le terminal (PowerShell/Curl).
+
+### Test A : Création & Déduplication
+Lancez cette commande deux fois de suite.
+* **Attendu** : La première fois, l'ID est créé (ex: 1). La deuxième fois, l'ID reste le même (1) et le message indique "Mise à jour".
+
+" Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/appelants/nouveau" -Method Post -ContentType "application/json" -Body '{"phone": "0601020304", "lastname": "DUPONT", "firstname": "Jean", "client_id": 2}' "
+
+### Test B : Recherche par téléphone
+Vérifiez que le système retrouve la fiche.
+
+" Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/appelants/search?phone=0601020304" -Method Get "
+
+---
+
+## ⚠️ 4. RÈGLES DE DÉVELOPPEMENT
+
+1.  **Unicité** : Le numéro de téléphone est la clé unique (`unique=true`).
+2.  **Logique Smart** : Ne jamais utiliser un simple `persist()` pour créer un appelant. Toujours vérifier son existence (`findOneBy`) avant pour éviter les erreurs SQL.
+
