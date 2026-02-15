@@ -35,28 +35,32 @@ Voici la liste des fichiers créés ou modifiés pour cette étape :
 
 ## 🧪 3. PROTOCOLE DE VALIDATION (TESTS)
 
-Suivez ces étapes dans l'ordre pour confirmer que tout est correctement configuré.
+Pour vérifier que l'étape 2 est correctement installée, suivez ces étapes :
 
-### Étape A : Réinitialisation des données
-Dans le dossier `server`, injectez les données de test :
-```bash
+### 1. Préparation des données
+Relancez les fixtures pour injecter le médecin de test (Dr House) et son affectation à la secrétaire Sophie :
+
+```bash 
 php bin/console doctrine:fixtures:load
-# (Répondre 'yes' pour purger la base)
+# Répondre 'yes'
 ```
-
 ### Étape B : Vérification Base de Données
 Vérifiez que la table `client` contient bien les données :
 
 ```bash
-php bin/console doctrine:query:sql "SELECT COUNT(*) FROM client" "
-" # Résultat attendu : 1 "
+php bin/console doctrine:query:sql "SELECT COUNT(*) FROM client"
+# Résultat attendu : 1
 ```
 
 ### Étape C : Test du Filtrage (Vue Secrétaire)
 1. Connectez-vous sur l'interface React avec : `secret@olympe.com` / `secret123`.
 2. Ouvrez l'URL : `http://127.0.0.1:8000/api/me/assignments`
-3. **Validation** : Le JSON doit contenir l'objet `client` complet rattaché à Sophie (Gregory House) Il doit afficher une liste contenant le secretaire Sophie et le client Gregory House.
+3. **Validation** : Le JSON doit contenir l'objet `client` complet rattaché à Sophie (Gregory House).
 
+### Étape D : Test de la Vue Globale (Vue Admin)
+1. Connectez-vous avec : `admin@olympe.com` / `admin123`.
+2. Ouvrez l'URL : `http://127.0.0.1:8000/api/admin/assignments`
+3. **Validation** : La liste doit afficher l'affectation avec les noms de la secrétaire ET du client grâce à la jointure.
 ---
 
 ## ⚠️ 4. RÈGLES DE DÉVELOPPEMENT
@@ -64,3 +68,4 @@ php bin/console doctrine:query:sql "SELECT COUNT(*) FROM client" "
 1. **Intégrité Relationnelle** : Ne jamais manipuler d'ID de client en "dur" (integer) dans le code. Toujours passer par l'entité `Client` via le `ClientRepository`.
 2. **Optimisation** : Toute nouvelle route listant des affectations doit obligatoirement utiliser une jointure (`Join`) pour récupérer les infos clients afin de préserver les performances du serveur.
 3. **Sécurité** : Le filtrage par secrétaire doit toujours se faire via `$this->getUser()` et jamais via un paramètre d'URL modifiable par l'utilisateur.
+
