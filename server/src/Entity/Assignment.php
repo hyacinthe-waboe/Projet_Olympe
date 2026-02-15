@@ -18,10 +18,11 @@ class Assignment
     private ?User $secretaire = null;
 
     #[ORM\Column]
-    private ?int $clientId = null;
-
-    #[ORM\Column]
     private ?\DateTime $createdAt = null;
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?Client $client = null;
 
     public function getId(): ?int
     {
@@ -40,18 +41,6 @@ class Assignment
         return $this;
     }
 
-    public function getClientId(): ?int
-    {
-        return $this->clientId;
-    }
-
-    public function setClientId(int $clientId): static
-    {
-        $this->clientId = $clientId;
-
-        return $this;
-    }
-
     public function getCreatedAt(): ?\DateTime
     {
         return $this->createdAt;
@@ -60,6 +49,18 @@ class Assignment
     public function setCreatedAt(\DateTime $createdAt): static
     {
         $this->createdAt = $createdAt;
+
+        return $this;
+    }
+
+    public function getClient(): ?Client
+    {
+        return $this->client;
+    }
+
+    public function setClient(?Client $client): static
+    {
+        $this->client = $client;
 
         return $this;
     }

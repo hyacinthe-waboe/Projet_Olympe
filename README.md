@@ -1,57 +1,80 @@
 # 🏥 Étape 2 : Gestion des Clients & Affectations Relationnelles
 
-Cette étape a permis de transformer le système d'ID "fictifs" en une véritable base de données relationnelle pour la gestion des médecins.
+Ce module marque la transition d'un système à identifiants statiques vers une architecture **relationnelle** complète pour la gestion des médecins (clients) et de leurs secrétaires.
 
-## 🛠️ Modifications Backend
+## ℹ️ 1. INFORMATIONS SUR CETTE ÉTAPE
 
-1. **Nouvelle Entité `Client` :**
-   * Création de la table `client` pour stocker les fiches médecins (Nom, Prénom, Spécialité, Consignes, Clé API WZ).
-   * Ajout du contrôleur `src/Controller/Admin/ClientController.php` pour le CRUD Admin.
+L'objectif était de structurer la base de données pour lier les affectations à de véritables entités `Client` (médecins), permettant une gestion fine des consignes et des accès.
 
-2. **Refonte de l'Entité `Assignment` :**
-   * Suppression de l'ancien champ `clientId` (integer).
-   * Création d'une relation **ManyToOne** vers l'entité `Client`.
-   * Mise à jour du `AssignmentRepository` avec un `leftJoin` pour optimiser les performances (évite le problème des requêtes N+1).
+* **Branche Git** : `feat/backend-etape2-clients`
+* **Statut** : Backend validé et opérationnel
 
-3. **Sécurisation du filtrage :**
-   * Le `MeAssignmentController` utilise désormais l'objet `User` en session pour ne retourner que les objets `Client` associés via la table d'affectation.
+---
 
-## ✅ Validation des tests
-* **Données de test :** Injection via `AppFixtures.php` d'un médecin (Gregory House) et d'une affectation.
-* **Résultat API :** L'endpoint `/api/me/assignments` retourne bien un JSON structuré incluant les détails du médecin pour la secrétaire connectée.
+## 🛠️ 2. MODIFICATIONS BACKEND (DÉTAILLÉES)
+
+Voici la liste des fichiers créés ou modifiés pour cette étape :
+
+### 📂 Fichiers Créés
+* **`src/Entity/Client.php`** : Définition de l'entité Client (Nom, Prénom, Email, Spécialité, Phone, Instructions, WzApiKey, IsActive).
+* **`src/Repository/ClientRepository.php`** : Gestion des requêtes liées à l'entité Client.
+* **`src/Controller/Admin/ClientController.php`** : Mise en place du CRUD (Create, Read) pour que l'administrateur puisse gérer les médecins.
+
+### 📂 Fichiers Modifiés
+* **`src/Entity/Assignment.php`** :
+    * Suppression de l'ancien champ `clientId` (integer).
+    * Ajout d'une relation **ManyToOne** vers l'entité `Client`.
+* **`src/Repository/AssignmentRepository.php`** :
+    * Mise à jour de `findBySecretaire` avec un **Left Join** sur la table client pour optimiser les performances (évite le problème SQL N+1).
+    * Mise à jour de `existsAssignment` pour utiliser la relation d'objet.
+* **`src/Controller/Admin/AssignmentController.php`** : Adaptation des méthodes de création et de listing pour injecter et retourner des objets `Client` complets.
+* **`src/Controller/MeAssignmentController.php`** : Enrichissement de la réponse JSON pour envoyer les détails du médecin (spécialité, nom, etc.) au front-end React.
+* **`src/DataFixtures/AppFixtures.php`** : Ajout de la création de médecins de test et d'une affectation initiale (Sophie -> Dr House).
+
+---
+
+## 🧪 3. PROTOCOLE DE VALIDATION (TESTS)
+
+Suivez ces étapes dans l'ordre pour confirmer que tout est correctement configuré.
+
+### Étape A : Réinitialisation des données
+Dans le dossier `server`, injectez les données de test :
+```bash
+php bin/console doctrine:fixtures:load
+# (Répondre 'yes' pour purger la base)
+```
+
+---
 
 ## 🧪 Procédure de Test (Validation)
 
-Suivez ces étapes pour confirmer que l'architecture relationnelle est bien en place :
+Pour vérifier que l'étape 2 est correctement installée, suivez ces étapes :
 
-### 1. Réinitialisation des données
-Relancer les fixtures pour injecter le médecin de test (Dr House) et son affectation à la secrétaire Sophie :
+### 1. Préparation des données
+Relancez les fixtures pour injecter le médecin de test (Dr House) et son affectation à la secrétaire Sophie :
+
 ```bash
 php bin/console doctrine:fixtures:load
-# Répondez 'yes' pour purger la base
+# Répondre 'yes' 
 ```
 
-### 2. Vérification de l'intégrité BDD
-Vérifiez manuellement que le médecin a bien été créé :
+### Étape B : Vérification Base de Données
+Vérifiez que la table `client` contient bien les données :
+
 ```bash
-php bin/console doctrine:query:sql "SELECT COUNT(*) FROM client"
-# Résultat attendu : 1
+php bin/console doctrine:query:sql "SELECT COUNT(*) FROM client" "
+" # Résultat attendu : 1 "
 ```
-### 3. Test de la Vue Secrétaire (Filtrage)
-Connectez-vous sur l'interface React avec secret@olympe.com (Sophie).
 
-Ouvrez l'URL API : http://127.0.0.1:8000/api/me/assignments
+### Étape C : Test du Filtrage (Vue Secrétaire)
+1. Connectez-vous sur l'interface React avec : `secret@olympe.com` / `secret123`.
+2. Ouvrez l'URL : `http://127.0.0.1:8000/api/me/assignments`
+3. **Validation** : Le JSON doit contenir l'objet `client` complet rattaché à Sophie (Gregory House).
 
-Validation : Vous devez voir un JSON structuré incluant l'objet client (id, firstName: "Gregory", lastName: "House").
+---
 
-### 4. Test de la Vue Admin (Liste globale)
-Connectez-vous avec admin@olympe.com.
+## ⚠️ 4. RÈGLES DE DÉVELOPPEMENT
 
-Ouvrez l'URL API : http://127.0.0.1:8000/api/admin/assignments
-
-Validation : La liste doit afficher à la fois les informations de la secrétaire et celles du client associé grâce à la jointure.
-
-## 📌 État du projet
-Branche actuelle : feat/backend-etape2-clients.
-
-Statut : Backend de l'étape 2 validé.
+1. **Intégrité Relationnelle** : Ne jamais manipuler d'ID de client en "dur" (integer) dans le code. Toujours passer par l'entité `Client` via le `ClientRepository`.
+2. **Optimisation** : Toute nouvelle route listant des affectations doit obligatoirement utiliser une jointure (`Join`) pour récupérer les infos clients afin de préserver les performances du serveur.
+3. **Sécurité** : Le filtrage par secrétaire doit toujours se faire via `$this->getUser()` et jamais via un paramètre d'URL modifiable par l'utilisateur.

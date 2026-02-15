@@ -18,15 +18,19 @@ class AssignmentRepository extends ServiceEntityRepository
 
     /**
      * Trouve toutes les affectations d'une secrétaire
-     * 
-     * @param int $secretaireId L'ID de la secrétaire
+     * OPTIMISÉ : Récupère les infos du Client (Médecin) en même temps
+     * * @param int $secretaireId L'ID de la secrétaire
      * @return Assignment[] Tableau des affectations
      */
     public function findBySecretaire(int $secretaireId): array
     {
         return $this->createQueryBuilder('a')
-            ->where('a.secretaire = :secretaireId')
-            ->setParameter('secretaireId', $secretaireId)
+            ->andWhere('a.secretaire = :val')
+            ->setParameter('val', $secretaireId)
+            // 👇 AJOUT CRUCIAL : On joint le client pour optimiser la requête
+            ->leftJoin('a.client', 'c') 
+            ->addSelect('c')            
+            // 👆 FIN AJOUT
             ->orderBy('a.createdAt', 'DESC')
             ->getQuery()
             ->getResult();
@@ -34,14 +38,13 @@ class AssignmentRepository extends ServiceEntityRepository
 
     /**
      * Trouve l'affectation d'un client spécifique
-     * 
-     * @param int $clientId L'ID du client
+     * * @param int $clientId L'ID du client (Médecin)
      * @return Assignment|null L'affectation ou null
      */
     public function findByClient(int $clientId): ?Assignment
     {
         return $this->createQueryBuilder('a')
-            ->where('a.clientId = :clientId')
+            ->andWhere('a.client = :clientId') // Doctrine comprend que c'est l'ID de la relation
             ->setParameter('clientId', $clientId)
             ->getQuery()
             ->getOneOrNullResult();
@@ -49,17 +52,16 @@ class AssignmentRepository extends ServiceEntityRepository
 
     /**
      * Vérifie si une affectation existe déjà
-     * 
-     * @param int $secretaireId L'ID de la secrétaire
+     * * @param int $secretaireId L'ID de la secrétaire
      * @param int $clientId L'ID du client
      * @return bool True si l'affectation existe, false sinon
      */
     public function existsAssignment(int $secretaireId, int $clientId): bool
     {
         $result = $this->createQueryBuilder('a')
-            ->select('COUNT(a.id)')
-            ->where('a.secretaire = :secretaireId')
-            ->andWhere('a.clientId = :clientId')
+            ->select('count(a.id)')
+            ->andWhere('a.secretaire = :secretaireId')
+            ->andWhere('a.client = :clientId') // Correction ici aussi
             ->setParameter('secretaireId', $secretaireId)
             ->setParameter('clientId', $clientId)
             ->getQuery()
@@ -70,14 +72,11 @@ class AssignmentRepository extends ServiceEntityRepository
 
     /**
      * Compte le nombre de clients affectés à une secrétaire
-     * 
-     * @param int $secretaireId L'ID de la secrétaire
-     * @return int Nombre de clients
      */
     public function countClientsBySecretaire(int $secretaireId): int
     {
         return $this->createQueryBuilder('a')
-            ->select('COUNT(a.id)')
+            ->select('count(a.id)')
             ->where('a.secretaire = :secretaireId')
             ->setParameter('secretaireId', $secretaireId)
             ->getQuery()

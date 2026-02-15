@@ -11,31 +11,36 @@ use Symfony\Component\Routing\Annotation\Route;
 class MeAssignmentController extends AbstractController
 {
     /**
-     * Permet à la secrétaire connectée de voir SES clients
+     * Permet à la secrétaire connectée de voir SES clients (Médecins)
      */
     #[Route('', name: 'list', methods: ['GET'])]
     public function getMyAssignments(AssignmentRepository $assignmentRepository): JsonResponse
     {
-        // 1. On récupère l'utilisateur connecté (c'est AUTOMATIQUE et SÉCURISÉ par Symfony)
+        // 1. On récupère l'utilisateur connecté
         $user = $this->getUser();
 
-        // 2. On vérifie au cas où (même si le security.yaml protège déjà)
         if (!$user) {
             return $this->json(['error' => 'Utilisateur non connecté'], 401);
         }
 
-        // 3. On demande au repository : "Donne-moi les affectations de CETTE secrétaire"
-        // (Note : on utilise l'ID de l'utilisateur connecté, pas un ID envoyé dans l'URL qui pourrait être falsifié)
+        // 2. On récupère les affectations
         $assignments = $assignmentRepository->findBySecretaire($user->getId());
 
-        // 4. On prépare les données pour le Front (React)
+        // 3. Transformation des données pour le Front (React)
+        // On renvoie maintenant l'objet "client" complet avec le nom !
         $data = array_map(function($assignment) {
             return [
-                'clientId' => $assignment->getClientId(), // C'est l'info CRUCIALE pour le Front
-                'assignedAt' => $assignment->getCreatedAt()->format('Y-m-d H:i:s')
+                'assignedAt' => $assignment->getCreatedAt()->format('Y-m-d H:i:s'),
+                'client' => [
+                    'id' => $assignment->getClient()->getId(),
+                    'firstName' => $assignment->getClient()->getFirstName(),
+                    'lastName' => $assignment->getClient()->getLastName(),
+                    'specialty' => $assignment->getClient()->getSpecialty(),
+                    'phone' => $assignment->getClient()->getPhone(),
+                ]
             ];
         }, $assignments);
 
-        return $this->json($data);
+        return $this->json($data, 200, [], ['json_encode_options' => JSON_UNESCAPED_UNICODE]);
     }
 }
