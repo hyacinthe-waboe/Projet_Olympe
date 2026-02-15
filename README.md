@@ -13,7 +13,7 @@
     * **Objectif :** Garantir qu'une secrétaire ne accède **qu'aux** clients qui lui sont affectés.
     * **Méthode :** L'API utilise désormais la session active (`$this->getUser()`) pour filtrer les résultats, plutôt que de demander un ID dans l'URL. Cela empêche tout accès non autorisé aux données d'une autre secrétaire.
 
-  
+---  
 
 # 🏥 Étape 2 : Gestion des Clients & Affectations Relationnelles
 
@@ -25,8 +25,7 @@ L'objectif était de structurer la base de données pour lier les affectations �
 
 * **Branche Git** : `feat/backend-etape2-clients`
 * **Statut** : Backend validé et opérationnel
-
----
+  
 
 ## 🛠️ 2. MODIFICATIONS BACKEND (DÉTAILLÉES)
 
@@ -48,7 +47,6 @@ Voici la liste des fichiers créés ou modifiés pour cette étape :
 * **`src/Controller/MeAssignmentController.php`** : Enrichissement de la réponse JSON pour envoyer les détails du médecin (spécialité, nom, etc.) au front-end React.
 * **`src/DataFixtures/AppFixtures.php`** : Ajout de la création de médecins de test et d'une affectation initiale (Sophie -> Dr House).
 
----
 
 ## 🧪 3. PROTOCOLE DE VALIDATION (TESTS)
 
@@ -78,7 +76,6 @@ php bin/console doctrine:query:sql "SELECT COUNT(*) FROM client"
 1. Connectez-vous avec : `admin@olympe.com` / `admin123`.
 2. Ouvrez l'URL : `http://127.0.0.1:8000/api/admin/assignments`
 3. **Validation** : La liste doit afficher l'affectation avec les noms de la secrétaire ET du client grâce à la jointure.
----
 
 ## ⚠️ 4. RÈGLES DE DÉVELOPPEMENT
 
@@ -86,7 +83,7 @@ php bin/console doctrine:query:sql "SELECT COUNT(*) FROM client"
 2. **Optimisation** : Toute nouvelle route listant des affectations doit obligatoirement utiliser une jointure (`Join`) pour récupérer les infos clients afin de préserver les performances du serveur.
 3. **Sécurité** : Le filtrage par secrétaire doit toujours se faire via `$this->getUser()` et jamais via un paramètre d'URL modifiable par l'utilisateur.
 
-
+---
 
 # 🏥 Étape 3 : Gestion des Appelants (Patients)
 
@@ -97,7 +94,6 @@ Ce module gère l'annuaire des patients qui appellent le cabinet. L'objectif cri
 * **Branche Git** : `feat/backend-etape3-patients`
 * **Objectif** : Centraliser les appelants et gérer la déduplication par numéro de téléphone.
 
----
 
 ## 🛠️ 2. MODIFICATIONS BACKEND
 
@@ -112,7 +108,6 @@ Ce module gère l'annuaire des patients qui appellent le cabinet. L'objectif cri
     * `GET /api/appelants/search` : Recherche rapide par téléphone.
     * `POST /api/appelants/nouveau` : "Smart Create". Si le patient existe, on le met à jour. Sinon, on le crée.
 
----
 
 ## 🧪 3. PROTOCOLE DE VALIDATION (TESTS)
 
@@ -128,8 +123,6 @@ Lancez cette commande deux fois de suite.
 Vérifiez que le système retrouve la fiche.
 
 " Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/appelants/search?phone=0601020304" -Method Get "
-
----
 
 ## ⚠️ 4. RÈGLES DE DÉVELOPPEMENT
 
