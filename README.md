@@ -39,6 +39,13 @@ Cette étape marque la **connexion finale** entre l'interface React et le Backen
     * **Sélecteur Médecin** : Passage d'une `datalist` instable à un `<select>` natif pour garantir l'envoi d'un ID valide.
 * **Gestion des Erreurs** : Affichage d'une `alert()` explicite si le backend refuse une suppression (cas du patient lié à un RDV).
 
+  ### 📦 Installation des Dépendances (Mise à jour)
+Cette étape introduit des librairies graphiques pour le calendrier. Si vous récupérez le projet, lancez cette commande dans le dossier `client` pour les installer :
+
+```bash
+npm install react-big-calendar date-fns
+```
+
 ## 🧪 3. PROTOCOLE DE VALIDATION (TESTS)
 
 Voici les scénarios à exécuter pour valider cette version.
