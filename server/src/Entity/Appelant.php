@@ -5,10 +5,11 @@ namespace App\Entity;
 use App\Repository\AppelantRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use Doctrine\DBAL\Types\Types; // Nécessaire pour le type DATE
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Validator\Constraints as Assert;
-use Symfony\Component\Serializer\Annotation\Groups; // <--- L'import important
+use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: AppelantRepository::class)]
 #[UniqueEntity(fields: ['phone'], message: 'Ce numéro de téléphone existe déjà.')]
@@ -17,22 +18,32 @@ class Appelant
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['appelant:read'])] // <--- Visible !
+    #[Groups(['appelant:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
     #[Assert\NotBlank]
-    #[Groups(['appelant:read'])] // <--- Visible !
+    #[Groups(['appelant:read'])]
     private ?string $lastname = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['appelant:read'])] // <--- Visible !
+    #[Groups(['appelant:read'])]
     private ?string $firstname = null;
 
     #[ORM\Column(length: 20, unique: true)]
     #[Assert\NotBlank]
-    #[Groups(['appelant:read'])] // <--- Visible !
+    #[Groups(['appelant:read'])]
     private ?string $phone = null;
+
+    // 👇 NOUVEAUX CHAMPS (Conformes à la maquette) 👇
+    #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['appelant:read'])]
+    private ?string $email = null;
+
+    #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]
+    #[Groups(['appelant:read'])]
+    private ?\DateTimeInterface $birthDate = null;
+    // 👆 FIN NOUVEAUX CHAMPS 👆
 
     /**
      * @var Collection<int, Client>
@@ -50,6 +61,8 @@ class Appelant
         return $this->id;
     }
 
+    // ... Getters et Setters existants ...
+
     public function getLastname(): ?string
     {
         return $this->lastname;
@@ -58,7 +71,6 @@ class Appelant
     public function setLastname(string $lastname): static
     {
         $this->lastname = $lastname;
-
         return $this;
     }
 
@@ -70,7 +82,6 @@ class Appelant
     public function setFirstname(?string $firstname): static
     {
         $this->firstname = $firstname;
-
         return $this;
     }
 
@@ -82,9 +93,32 @@ class Appelant
     public function setPhone(string $phone): static
     {
         $this->phone = $phone;
-
         return $this;
     }
+
+    // 👇 NOUVEAUX GETTERS/SETTERS 👇
+    public function getEmail(): ?string
+    {
+        return $this->email;
+    }
+
+    public function setEmail(?string $email): static
+    {
+        $this->email = $email;
+        return $this;
+    }
+
+    public function getBirthDate(): ?\DateTimeInterface
+    {
+        return $this->birthDate;
+    }
+
+    public function setBirthDate(?\DateTimeInterface $birthDate): static
+    {
+        $this->birthDate = $birthDate;
+        return $this;
+    }
+    // 👆 FIN NOUVEAUX GETTERS/SETTERS 👆
 
     public function getClients(): Collection
     {
@@ -96,14 +130,12 @@ class Appelant
         if (!$this->clients->contains($client)) {
             $this->clients->add($client);
         }
-
         return $this;
     }
 
     public function removeClient(Client $client): static
     {
         $this->clients->removeElement($client);
-
         return $this;
     }
 }

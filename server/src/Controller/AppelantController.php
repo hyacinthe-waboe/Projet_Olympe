@@ -11,7 +11,6 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
-use Symfony\Component\Serializer\SerializerInterface;
 
 #[Route('/api/appelants')]
 class AppelantController extends AbstractController
@@ -25,68 +24,135 @@ class AppelantController extends AbstractController
         $this->appelantRepository = $appelantRepository;
     }
 
-    // 🔍 RECHERCHE RAPIDE (Par téléphone)
-    // C'est ce qui servira quand le téléphone sonne !
+    // 📋 LISTE COMPLÈTE
+    #[Route('', name: 'api_appelants_index', methods: ['GET'])]
+    public function index(): JsonResponse
+    {
+        $appelants = $this->appelantRepository->findAll();
+        
+        $data = array_map(function($appelant) {
+            $linkedClient = null;
+            if (!$appelant->getClients()->isEmpty()) {
+                $client = $appelant->getClients()->first();
+                $linkedClient = [
+                    'id' => $client->getId(),
+                    'nomComplet' => $client->getFirstName() . ' ' . $client->getLastName()
+                ];
+            }
+
+            return [
+                'id' => $appelant->getId(),
+                'lastname' => $appelant->getLastname(),
+                'firstname' => $appelant->getFirstname(),
+                'phone' => $appelant->getPhone(),
+                'email' => $appelant->getEmail(),
+                'birthDate' => $appelant->getBirthDate() ? $appelant->getBirthDate()->format('Y-m-d') : null,
+                'linkedClient' => $linkedClient
+            ];
+        }, $appelants);
+
+        return $this->json($data);
+    }
+
+    // 🔍 RECHERCHE RAPIDE
     #[Route('/search', name: 'api_appelants_search', methods: ['GET'])]
     public function search(Request $request): JsonResponse
     {
         $phone = $request->query->get('phone');
+        if (!$phone) return $this->json(['error' => 'Numéro requis'], 400);
 
-        if (!$phone) {
-            return $this->json(['error' => 'Numéro de téléphone requis'], 400);
-        }
-
-        // On cherche le patient
         $appelant = $this->appelantRepository->findOneBy(['phone' => $phone]);
-
-        if (!$appelant) {
-            return $this->json(null); // Pas trouvé, renvoie null (c'est normal)
-        }
+        if (!$appelant) return $this->json(null);
 
         return $this->json($appelant, 200, [], ['groups' => 'appelant:read']);
     }
 
-    // 💾 CRÉATION INTELLIGENTE (Gestion des doublons)
-    // Si le patient existe déjà, on le met à jour. Sinon, on le crée.
+    // 💾 CRÉATION / MODIFICATION (Avec Nom/Prénom séparés)
     #[Route('/nouveau', name: 'api_appelants_create', methods: ['POST'])]
     public function createOrUpdate(Request $request, ClientRepository $clientRepository): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
         $phone = $data['phone'] ?? null;
-        $clientId = $data['client_id'] ?? null; // Pour quel médecin il appelle ?
+        $clientId = $data['client_id'] ?? $data['linkedClient'] ?? null; 
 
-        if (!$phone || !$clientId) {
-            return $this->json(['error' => 'Téléphone et ID médecin obligatoires'], 400);
+        // Validation stricte
+        if (empty($phone)) {
+             return $this->json(['error' => 'Téléphone obligatoire'], 400);
+        }
+        
+        // ✅ CHANGEMENT : On attend Nom ET Prénom distincts
+        $lastname = $data['lastname'] ?? null;
+        $firstname = $data['firstname'] ?? null;
+
+        if (empty($lastname) || empty($firstname)) {
+            return $this->json(['error' => 'Le Nom et le Prénom sont obligatoires'], 400);
         }
 
-        // 1. Est-ce que ce patient existe déjà ?
+        // 1. Recherche existant (Dédoublonnage)
         $appelant = $this->appelantRepository->findOneBy(['phone' => $phone]);
 
-        // 2. Si non, on le crée
+        // 2. Création si n'existe pas
         if (!$appelant) {
             $appelant = new Appelant();
             $appelant->setPhone($phone);
         }
 
-        // 3. Mise à jour des infos (si fournies)
-        if (isset($data['lastname'])) $appelant->setLastname($data['lastname']);
-        if (isset($data['firstname'])) $appelant->setFirstname($data['firstname']);
-
-        // 4. On lie ce patient au médecin concerné (si pas déjà fait)
-        $client = $clientRepository->find($clientId);
-        if ($client) {
-            $appelant->addClient($client);
+        // 3. Mise à jour des infos
+        $appelant->setLastname($lastname);
+        $appelant->setFirstname($firstname);
+        if (isset($data['email'])) $appelant->setEmail($data['email']);
+        
+        if (!empty($data['birthDate'])) {
+            try { $appelant->setBirthDate(new \DateTime($data['birthDate'])); } catch (\Exception $e) {}
         }
 
-        // 5. Sauvegarde
+        // 4. Liaison Médecin (Correction pour la synchronisation)
+        if ($clientId) {
+            $client = $clientRepository->find($clientId);
+            if ($client) {
+                // 🛡️ On vide les anciens liens avant d'ajouter le nouveau
+                foreach ($appelant->getClients() as $oldClient) {
+                    $appelant->removeClient($oldClient);
+                }
+                $appelant->addClient($client);
+            }
+        }
+
         $this->entityManager->persist($appelant);
         $this->entityManager->flush();
 
         return $this->json([
-            'message' => 'Dossier patient mis à jour',
             'id' => $appelant->getId(),
+            'lastname' => $appelant->getLastname(),
+            'firstname' => $appelant->getFirstname(),
             'phone' => $appelant->getPhone(),
-            'nom' => $appelant->getLastname()
+            'email' => $appelant->getEmail(),
+            'birthDate' => $appelant->getBirthDate() ? $appelant->getBirthDate()->format('Y-m-d') : null,
         ], 201);
+    }
+    
+    // 🗑️ SUPPRESSION
+    #[Route('/{id}', name: 'app_appelant_delete', methods: ['DELETE'])]
+    public function delete(int $id, \App\Repository\RendezVousRepository $rdvRepo): JsonResponse
+    {
+        // 🚨 Correction ici : on utilise 'appelantRepository' et non 'repository'
+        $appelant = $this->appelantRepository->find($id);
+
+        if (!$appelant) {
+            return $this->json(['error' => 'Patient introuvable'], 404);
+        }
+
+        // 🛡️ SÉCURITÉ : On vérifie si le patient a des RDV
+        $hasRdvs = $rdvRepo->findOneBy(['appelant' => $appelant]);
+        if ($hasRdvs) {
+            return $this->json([
+                'error' => 'Impossible de supprimer ce patient car il est lié à des rendez-vous dans l\'agenda.'
+            ], 400);
+        }
+
+        $this->entityManager->remove($appelant);
+        $this->entityManager->flush();
+
+        return $this->json(['message' => 'Patient supprimé avec succès']);
     }
 }

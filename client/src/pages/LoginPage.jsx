@@ -64,7 +64,7 @@ export default function LoginPage() {
           <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-4">
             <img src={logo} alt="Logo" className="w-16 h-16 object-contain" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-800">Connexion Secrétaire</h1>
+          <h1 className="text-2xl font-bold text-gray-800">Connexion Olympe</h1>
           <p className="text-gray-500 text-sm mt-1">Projet Olympe - Accès Sécurisé</p>
         </div>
 

@@ -31,6 +31,12 @@ class Client
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $specialty = null;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $address = null;
+
+    #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]
+    private ?\DateTimeInterface $birthDate = null;
+
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $instructions = null;
 
@@ -44,11 +50,11 @@ class Client
      * @var Collection<int, Appelant>
      */
     #[ORM\ManyToMany(targetEntity: Appelant::class, mappedBy: 'clients')]
-    private Collection $yes;
+    private Collection $appelants;
 
     public function __construct()
     {
-        $this->yes = new ArrayCollection();
+        $this->appelants = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -64,7 +70,6 @@ class Client
     public function setEmail(string $email): static
     {
         $this->email = $email;
-
         return $this;
     }
 
@@ -76,7 +81,6 @@ class Client
     public function setFirstName(string $firstName): static
     {
         $this->firstName = $firstName;
-
         return $this;
     }
 
@@ -88,7 +92,6 @@ class Client
     public function setLastName(string $lastName): static
     {
         $this->lastName = $lastName;
-
         return $this;
     }
 
@@ -100,7 +103,6 @@ class Client
     public function setPhone(?string $phone): static
     {
         $this->phone = $phone;
-
         return $this;
     }
 
@@ -112,7 +114,28 @@ class Client
     public function setSpecialty(?string $specialty): static
     {
         $this->specialty = $specialty;
+        return $this;
+    }
 
+    public function getAddress(): ?string
+    {
+        return $this->address;
+    }
+
+    public function setAddress(?string $address): static
+    {
+        $this->address = $address;
+        return $this;
+    }
+
+    public function getBirthDate(): ?\DateTimeInterface
+    {
+        return $this->birthDate;
+    }
+
+    public function setBirthDate(?\DateTimeInterface $birthDate): static
+    {
+        $this->birthDate = $birthDate;
         return $this;
     }
 
@@ -124,7 +147,6 @@ class Client
     public function setInstructions(?string $instructions): static
     {
         $this->instructions = $instructions;
-
         return $this;
     }
 
@@ -136,7 +158,6 @@ class Client
     public function setWzApiKey(?string $wzApiKey): static
     {
         $this->wzApiKey = $wzApiKey;
-
         return $this;
     }
 
@@ -148,34 +169,31 @@ class Client
     public function setIsActive(bool $isActive): static
     {
         $this->isActive = $isActive;
-
         return $this;
     }
 
     /**
      * @return Collection<int, Appelant>
      */
-    public function getYes(): Collection
+    public function getAppelants(): Collection
     {
-        return $this->yes;
+        return $this->appelants;
     }
 
-    public function addYe(Appelant $ye): static
+    public function addAppelant(Appelant $appelant): static
     {
-        if (!$this->yes->contains($ye)) {
-            $this->yes->add($ye);
-            $ye->addClient($this);
+        if (!$this->appelants->contains($appelant)) {
+            $this->appelants->add($appelant);
+            $appelant->addClient($this);
         }
-
         return $this;
     }
 
-    public function removeYe(Appelant $ye): static
+    public function removeAppelant(Appelant $appelant): static
     {
-        if ($this->yes->removeElement($ye)) {
-            $ye->removeClient($this);
+        if ($this->appelants->removeElement($appelant)) {
+            $appelant->removeClient($this);
         }
-
         return $this;
     }
 }

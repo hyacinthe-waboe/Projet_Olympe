@@ -21,7 +21,7 @@ class Assignment
     private ?\DateTime $createdAt = null;
 
     #[ORM\ManyToOne]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?Client $client = null;
 
     public function getId(): ?int
