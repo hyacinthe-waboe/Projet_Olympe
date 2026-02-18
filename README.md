@@ -1,131 +1,67 @@
-# 🔐 Mise à jour Backend de l'etape 1 : Accès Affectations Secrétaires
+# 📅 Étape 4 : Intégration Complète Agenda & Contacts (Front/Back)
 
-## 🛠️ Ce qui a été ajouté
-* **Nouveau Contrôleur :** `src/Controller/MeAssignmentController.php`
-* **Nouvelle Route :** `GET /api/me/assignments`
-
-## ❓ Pourquoi cette modification ?
-1.  **Déblocage des accès (Firewall) :**
-    * Les routes commençant par `/api/admin` sont strictement réservées au `ROLE_ADMIN` dans le fichier `security.yaml`.
-    * Les secrétaires (rôle `ROLE_SECRETAIRE`) étaient bloquées (Erreur 403) pour consulter leurs propres affectations.
-
-2.  **Sécurité & Isolation des données :**
-    * **Objectif :** Garantir qu'une secrétaire ne accède **qu'aux** clients qui lui sont affectés.
-    * **Méthode :** L'API utilise désormais la session active (`$this->getUser()`) pour filtrer les résultats, plutôt que de demander un ID dans l'URL. Cela empêche tout accès non autorisé aux données d'une autre secrétaire.
-
----  
-
-# 🏥 Étape 2 : Gestion des Clients & Affectations Relationnelles
-
-Ce module marque la transition d'un système à identifiants statiques vers une architecture **relationnelle** complète pour la gestion des médecins (clients) et de leurs secrétaires.
+Cette étape marque la **connexion finale** entre l'interface React et le Backend Symfony. Elle transforme les maquettes en une application fonctionnelle avec persistance des données, validation métier et sécurisation des suppressions.
 
 ## ℹ️ 1. INFORMATIONS SUR CETTE ÉTAPE
 
-L'objectif était de structurer la base de données pour lier les affectations à de véritables entités `Client` (médecins), permettant une gestion fine des consignes et des accès.
+* **Branche Git** : `feature/agenda-contacts-backend`
+* **Objectif** : Rendre l'Agenda et la page Contacts totalement dynamiques, sécurisés et synchronisés.
+* **Statut** : ✅ Validé & Fonctionnel
 
-* **Branche Git** : `feat/backend-etape2-clients`
-* **Statut** : Backend validé et opérationnel
-  
+## 🛠️ 2. MODIFICATIONS DÉTAILLÉES
 
-## 🛠️ 2. MODIFICATIONS BACKEND (DÉTAILLÉES)
+### 📂 Côté Backend (Symfony)
 
-Voici la liste des fichiers créés ou modifiés pour cette étape :
-
-### 📂 Fichiers Créés
-* **`src/Entity/Client.php`** : Définition de l'entité Client (Nom, Prénom, Email, Spécialité, Phone, Instructions, WzApiKey, IsActive).
-* **`src/Repository/ClientRepository.php`** : Gestion des requêtes liées à l'entité Client.
-* **`src/Controller/Admin/ClientController.php`** : Mise en place du CRUD (Create, Read) pour que l'administrateur puisse gérer les médecins.
-
-### 📂 Fichiers Modifiés
-* **`src/Entity/Assignment.php`** :
-    * Suppression de l'ancien champ `clientId` (integer).
-    * Ajout d'une relation **ManyToOne** vers l'entité `Client`.
-* **`src/Repository/AssignmentRepository.php`** :
-    * Mise à jour de `findBySecretaire` avec un **Left Join** sur la table client pour optimiser les performances (évite le problème SQL N+1).
-    * Mise à jour de `existsAssignment` pour utiliser la relation d'objet.
-* **`src/Controller/Admin/AssignmentController.php`** : Adaptation des méthodes de création et de listing pour injecter et retourner des objets `Client` complets.
-* **`src/Controller/MeAssignmentController.php`** : Enrichissement de la réponse JSON pour envoyer les détails du médecin (spécialité, nom, etc.) au front-end React.
-* **`src/DataFixtures/AppFixtures.php`** : Ajout de la création de médecins de test et d'une affectation initiale (Sophie -> Dr House).
-
-
-## 🧪 3. PROTOCOLE DE VALIDATION (TESTS)
-
-Pour vérifier que l'étape 2 est correctement installée, suivez ces étapes :
-
-### 1. Préparation des données
-Relancez les fixtures pour injecter le médecin de test (Dr House) et son affectation à la secrétaire Sophie :
-
-```bash 
-php bin/console doctrine:fixtures:load
-# Répondre 'yes'
-```
-### Étape B : Vérification Base de Données
-Vérifiez que la table `client` contient bien les données :
-
-```bash
-php bin/console doctrine:query:sql "SELECT COUNT(*) FROM client"
-# Résultat attendu : 1
-```
-
-### Étape C : Test du Filtrage (Vue Secrétaire)
-1. Connectez-vous sur l'interface React avec : `secret@olympe.com` / `secret123`.
-2. Ouvrez l'URL : `http://127.0.0.1:8000/api/me/assignments`
-3. **Validation** : Le JSON doit contenir l'objet `client` complet rattaché à Sophie (Gregory House).
-
-### Étape D : Test de la Vue Globale (Vue Admin)
-1. Connectez-vous avec : `admin@olympe.com` / `admin123`.
-2. Ouvrez l'URL : `http://127.0.0.1:8000/api/admin/assignments`
-3. **Validation** : La liste doit afficher l'affectation avec les noms de la secrétaire ET du client grâce à la jointure.
-
-## ⚠️ 4. RÈGLES DE DÉVELOPPEMENT
-
-1. **Intégrité Relationnelle** : Ne jamais manipuler d'ID de client en "dur" (integer) dans le code. Toujours passer par l'entité `Client` via le `ClientRepository`.
-2. **Optimisation** : Toute nouvelle route listant des affectations doit obligatoirement utiliser une jointure (`Join`) pour récupérer les infos clients afin de préserver les performances du serveur.
-3. **Sécurité** : Le filtrage par secrétaire doit toujours se faire via `$this->getUser()` et jamais via un paramètre d'URL modifiable par l'utilisateur.
-
----
-
-# 🏥 Étape 3 : Gestion des Appelants (Patients)
-
-Ce module gère l'annuaire des patients qui appellent le cabinet. L'objectif critique était d'éviter les doublons (avoir 10 fiches pour le même M. Martin).
-
-## ℹ️ 1. INFORMATIONS
-
-* **Branche Git** : `feat/backend-etape3-patients`
-* **Objectif** : Centraliser les appelants et gérer la déduplication par numéro de téléphone.
-
-
-## 🛠️ 2. MODIFICATIONS BACKEND
-
-### 📂 Fichiers Créés
-* **`src/Entity/Appelant.php`** :
-    * Contient les infos patient (Nom, Prénom, Téléphone).
-    * **Sécurité** : Utilise l'attribut `#[UniqueEntity]` pour empêcher les doublons de numéros.
-    * **Relation** : ManyToMany vers `Client` (Un patient peut appeler pour plusieurs médecins).
-    * **Serialisation** : Groupe `appelant:read` pour contrôler les données exposées.
-* **`src/Repository/AppelantRepository.php`** : Gestion des requêtes SQL pour les appelants.
 * **`src/Controller/AppelantController.php`** :
-    * `GET /api/appelants/search` : Recherche rapide par téléphone.
-    * `POST /api/appelants/nouveau` : "Smart Create". Si le patient existe, on le met à jour. Sinon, on le crée.
+    * **Synchronisation Relationnelle** : Refonte de la méthode `createOrUpdate`. Désormais, lors d'une modification de médecin traitant, l'ancien lien est supprimé (`removeClient`) avant d'ajouter le nouveau, garantissant une relation unique.
+    * **Sécurisation de la Suppression** : La méthode `delete` injecte désormais `RendezVousRepository`. Avant de supprimer un patient, elle vérifie s'il possède des RDV. Si oui, elle renvoie une **Erreur 400** bloquante avec un message explicite.
+    * **Correction Variable** : Correction du bug de nommage (`$this->appelantRepository` vs `$this->repository`).
 
+### 📂 Côté Frontend (React)
+
+#### A. Module Agenda (`CalendarPage.jsx`)
+* **Logique Métier (Règles Business)** :
+    * **Limite de Capacité** : Algorithme empêchant la création de plus de **2 rendez-vous simultanés** sur le même créneau horaire.
+    * **Verrouillage Temporel** : Interdiction stricte (visuelle et logique) de créer ou déplacer un RDV dans le passé.
+* **Design & UX** :
+    * **Couleurs Dynamiques** : Implémentation d'un générateur HSL basé sur l'ID du médecin (Angle d'Or) pour garantir des couleurs uniques et stables sans limite de nombre.
+    * **Composants Visuels** :
+        * `WeekEventComponent` : Affichage optimisé "Titre + Patient + Médecin". Sur les créneaux conflictuels, le médecin s'aligne pour ne pas être masqué.
+        * `AgendaEventComponent` : Vue liste structurée en colonnes alignées.
+    * **Gestion des Jours** : Les jours passés sont grisés automatiquement via `dayPropGetter`.
+
+#### B. Module Contacts (`ContactPage.jsx`)
+* **Fiabilisation des Données** :
+    * **Typage Strict** : Correction des comparaisons d'ID (`Number()` et `==`) pour éviter le bug "Médecin inconnu" lors de l'affichage.
+    * **Nettoyage** : Suppression des doublons de propriétés dans l'objet `newContact` lors de la soumission.
+* **Composants de Formulaire** :
+    * **Input Téléphone** : Ajout d'une icône visuelle et d'un pattern de validation HTML5 (8 chiffres minimum, chiffres uniquement).
+    * **Sélecteur Médecin** : Passage d'une `datalist` instable à un `<select>` natif pour garantir l'envoi d'un ID valide.
+* **Gestion des Erreurs** : Affichage d'une `alert()` explicite si le backend refuse une suppression (cas du patient lié à un RDV).
 
 ## 🧪 3. PROTOCOLE DE VALIDATION (TESTS)
 
-Comme il n'y a pas encore d'interface graphique pour cette partie, les tests se font via le terminal (PowerShell/Curl).
+Voici les scénarios à exécuter pour valider cette version.
 
-### Test A : Création & Déduplication
-Lancez cette commande deux fois de suite.
-* **Attendu** : La première fois, l'ID est créé (ex: 1). La deuxième fois, l'ID reste le même (1) et le message indique "Mise à jour".
+### Test A : Sécurité de l'Agenda
+1.  Essayez de cliquer sur une case d'hier ou d'avant-hier.
+    * **Attendu** : Curseur interdit + Alerte "Impossible de créer dans le passé".
+2.  Créez 2 RDV sur le même créneau (ex: Lundi 10h00). Essayez d'en créer un 3ème.
+    * **Attendu** : Blocage immédiat avec message "Créneau saturé (Max 2)".
 
-" Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/appelants/nouveau" -Method Post -ContentType "application/json" -Body '{"phone": "0601020304", "lastname": "DUPONT", "firstname": "Jean", "client_id": 2}' "
+### Test B : Persistance des Contacts (Le Test "F5")
+1.  Allez dans "Contacts", modifiez un patient existant.
+2.  Changez son médecin traitant via le menu déroulant. Validez.
+3.  Rafraîchissez la page (Touche F5).
+    * **Attendu** : Le patient doit toujours afficher le *nouveau* médecin (preuve que la base de données a bien supprimé l'ancien lien pour mettre le nouveau).
 
-### Test B : Recherche par téléphone
-Vérifiez que le système retrouve la fiche.
-
-" Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/appelants/search?phone=0601020304" -Method Get "
+### Test C : Intégrité des Données (Suppression)
+1.  Prenez un patient qui a un RDV visible dans l'agenda.
+2.  Allez dans "Contacts" et tentez de le supprimer.
+    * **Attendu** : Message d'erreur rouge "Impossible de supprimer ce patient car il est lié à des rendez-vous". Le patient ne doit pas disparaître.
 
 ## ⚠️ 4. RÈGLES DE DÉVELOPPEMENT
 
-1.  **Unicité** : Le numéro de téléphone est la clé unique (`unique=true`).
-2.  **Logique Smart** : Ne jamais utiliser un simple `persist()` pour créer un appelant. Toujours vérifier son existence (`findOneBy`) avant pour éviter les erreurs SQL.
-
+1.  **Typage ID** : Le Backend renvoie souvent des ID en `int`, mais les formulaires HTML les traitent en `string`. Toujours utiliser `Number()` ou une comparaison souple (`==`) pour les sélecteurs.
+2.  **Harmonie Visuelle** : Ne jamais coder de couleurs "en dur" pour les médecins. Toujours utiliser la fonction `getColorForClient(id)` pour assurer la cohérence entre la Sidebar et le Calendrier.
+3.  **Priorité Serveur** : C'est toujours le Backend (Symfony) qui a le dernier mot sur la sécurité (ex: empêcher la suppression). Le Frontend ne fait qu'afficher le message d'erreur du serveur.
