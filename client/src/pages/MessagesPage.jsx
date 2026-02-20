@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 
+
 // --- Icônes ---
 const CalendarIcon = () => (
   <svg
@@ -306,7 +307,10 @@ const MessageList = ({
           <div
             key={msg.id}
             onClick={() => onSelect(msg)}
-            className={`flex p-4 space-x-3 cursor-pointer border-b border-gray-50 transition-colors ${msg.id === selectedId ? "bg-blue-50/60 border-l-4 border-l-blue-500" : "hover:bg-gray-50"} ${msg.isRead ? "opacity-60" : ""}`}
+            className={`flex p-4 space-x-3 cursor-pointer border-b border-gray-50
+    ${msg.id === selectedId ? "bg-blue-50/60 border-l-4 border-l-blue-500" : "hover:bg-gray-50"} 
+    ${msg.isRead ? "opacity-60" : ""}
+`}
           >
             <div
               className="flex items-center"
@@ -615,7 +619,7 @@ export default function MessagesPage() {
     content: "",
     senderName: "Secrétariat",
   });
-  const [selectedToDelete, setSelectedToDelete] = useState([]); // 👈 NOUVEAU STATE
+  const [selectedToDelete, setSelectedToDelete] = useState([]); 
 
 // 1. Chargement initial des données
   useEffect(() => {
@@ -623,51 +627,44 @@ export default function MessagesPage() {
     fetchInitialData();
   }, []);
 
-  // 2. ✅ LE NOUVEAU BLOC : Détecteur pour ouvrir un message précis
-  useEffect(() => {
-    // Si on vient du Dashboard avec un ID de message
-    const targetId = location.state?.openMessageId;
+// 🚀 LOGIQUE DE TÉLÉPORTATION UNIQUE
+useEffect(() => {
+  const targetId = location.state?.openMessageId;
+  
+  if (targetId && messages.length > 0) {
+    const msgToOpen = messages.find(m => m.id === targetId);
     
-    if (targetId && messages.length > 0) {
-      // On cherche le message dans la liste chargée
-      const msgToOpen = messages.find(m => m.id === targetId);
-      
-      if (msgToOpen) {
-        setSelectedMsg(msgToOpen);
-        // Optionnel : on le marque comme lu si tu veux
-        // handleMarkRead(msgToOpen.id); 
-
-        // Nettoyage de l'URL pour ne pas ré-ouvrir le message au prochain refresh
-        window.history.replaceState({}, document.title);
-      }
+    if (msgToOpen) {
+      // 1. On force l'onglet sur "Tous" pour que le message soit visible
+      setActiveTab("Tous");
+      // 2. On sélectionne le message immédiatement
+      setSelectedMsg(msgToOpen);
+      // 3. On nettoie l'état de navigation
+      window.history.replaceState({}, document.title);
     }
-  }, [location.state, messages]); // Se déclenche quand les messages sont reçus
+  }
+}, [location.state, messages]); // On surveille l'arrivée des messages
   
 
-  // 🔄 CORRECTION : Sélection automatique intelligente
-  useEffect(() => {
-    const filtered = messages.filter((msg) => {
-      const tabMatch = activeTab === "Nouveaux" ? !msg.isRead : true;
-      const searchMatch =
-        msg.from.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        msg.doctorName.toLowerCase().includes(searchQuery.toLowerCase());
-      return tabMatch && searchMatch;
-    });
+// 🔄 Sélection automatique intelligente
+useEffect(() => {
+  // On ne lance l'auto-sélection QUE s'il n'y a pas de demande de téléportation en cours
+  if (location.state?.openMessageId) return;
 
-    // On ne change la sélection que si :
-    // 1. Rien n'est sélectionné
-    // 2. OU le message sélectionné n'est plus dans la liste filtrée (ex: on vient de le traiter)
-    const isStillVisible =
-      selectedMsg && filtered.some((m) => m.id === selectedMsg.id);
+  const filtered = messages.filter((msg) => {
+    const tabMatch = activeTab === "Nouveaux" ? !msg.isRead : true;
+    const searchMatch =
+      msg.from.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      msg.doctorName.toLowerCase().includes(searchQuery.toLowerCase());
+    return tabMatch && searchMatch;
+  });
 
-    if (!isStillVisible) {
-      if (filtered.length > 0) {
-        setSelectedMsg(filtered[0]);
-      } else {
-        setSelectedMsg(null);
-      }
-    }
-  }, [activeTab, messages, searchQuery]); // On surveille aussi la recherche
+  const isStillVisible = selectedMsg && filtered.some((m) => m.id === selectedMsg.id);
+
+  if (!isStillVisible && filtered.length > 0) {
+    setSelectedMsg(filtered[0]);
+  }
+}, [activeTab, messages, searchQuery, location.state]);
 
   // 🗑️ NOUVELLE FONCTION : Gérer la suppression
   const handleDeleteMessages = async (idsToDelete) => {
