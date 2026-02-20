@@ -585,18 +585,28 @@ const fetchData = async () => {
     }
   };
 
+// --- PALETTE COULEURS DYNAMIQUE & GESTION DU PASSÉ ---
   const eventStyleGetter = (event) => {
     const colors = getColorForClient(event.clientId);
+    
+    // 🕒 Vérification : est-ce que le rendez-vous est terminé ?
+    // On compare la date de fin du RDV avec l'heure actuelle
+    const isPast = new Date(event.end) < new Date();
+
     return {
       style: {
         backgroundColor: colors.bg,
         color: colors.text,
-        border: "none",
-        borderRadius: "4px",
-        fontSize: "14px",
-        fontWeight: "600",
-        padding: "4px 8px",
-        display: "block",
+        borderRadius: '6px',
+        border: 'none',
+        borderLeft: `4px solid ${colors.border}`,
+        display: 'block',
+        fontSize: '0.85rem',
+        fontWeight: '500',
+        // ✨ L'effet visuel :
+        opacity: isPast ? 0.5 : 1,       // 50% de transparence si c'est passé
+        filter: isPast ? 'grayscale(20%)' : 'none', // Optionnel : un léger voile gris
+        cursor: 'pointer',
       },
     };
   };
