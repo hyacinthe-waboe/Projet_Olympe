@@ -1,104 +1,258 @@
 // src/pages/TasksPage.jsx
 
-import React from 'react';
+import React, { useState, useEffect } from "react";
 
-// --- Icônes nécessaires pour CETTE page ---
+// --- Icônes ---
 const ShareIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+    <polyline points="16 6 12 2 8 6"></polyline>
+    <line x1="12" y1="2" x2="12" y2="15"></line>
+  </svg>
 );
-const ChevronDownIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+const TrashIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <polyline points="3 6 5 6 21 6"></polyline>
+    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+    <line x1="10" y1="11" x2="10" y2="17"></line>
+    <line x1="14" y1="11" x2="14" y2="17"></line>
+  </svg>
+);
+const PlusIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <line x1="12" y1="5" x2="12" y2="19"></line>
+    <line x1="5" y1="12" x2="19" y2="12"></line>
+  </svg>
 );
 
-// --- Données de simulation ---
-const tasksToDo = [
-    { id: 1, title: 'Rédiger facture M. Durand', note: 'Ajouter option SMS.' },
-    { id: 2, title: 'Envoyer facture M. Durand', note: 'Mettre en copie secretaire.' },
-    { id: 3, title: 'Rappeler M.BOYE', note: 'Note: CEO Telkelle.' },
-];
-const tasksInProgress = [
-    { id: 4, title: 'Traiter demandes Dr.DUPONT', note: 'Note: ...' },
-];
-const tasksDone = [];
+// --- COMPOSANTS DE LA PAGE ---
 
-// --- Composants de la page ---
-
-// Carte de tâche individuelle
-const TaskCard = ({ task }) => (
-    <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm mb-3">
-        <h4 className="font-semibold text-sm">{task.title}</h4>
-        <p className="text-xs text-gray-500">{task.note}</p>
+// 1. Carte de tâche individuelle
+const TaskCard = ({ task, onToggle, onDelete }) => (
+  <div
+    className={`bg-white p-4 rounded-xl border shadow-sm mb-3 flex items-start gap-3 transition-all ${task.isDone ? "opacity-60 bg-gray-50 border-gray-200" : "border-blue-100 hover:shadow-md"}`}
+  >
+    <input
+      type="checkbox"
+      checked={task.isDone}
+      onChange={() => onToggle(task.id)}
+      className="mt-1 w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+    />
+    <div className="flex-1 min-w-0">
+      <h4
+        className={`font-semibold text-sm truncate ${task.isDone ? "line-through text-gray-500" : "text-gray-800"}`}
+      >
+        {task.title}
+      </h4>
+      <p className="text-xs text-gray-400 mt-1">
+        Créé le {task.createdAt}{" "}
+        <span className="font-medium text-gray-500">• {task.ownerName}</span>
+      </p>
     </div>
+    <button
+      onClick={() => onDelete(task.id)}
+      className="text-gray-300 hover:text-red-500 transition p-1"
+      title="Supprimer la tâche"
+    >
+      <TrashIcon />
+    </button>
+  </div>
 );
 
-// Colonne du Kanban
-const KanbanColumn = ({ title, count, tasks }) => (
-    <div className="bg-gray-100 rounded-lg p-4 flex-1">
-        <h3 className="font-semibold mb-4">{title} ({count})</h3>
-        <div className="space-y-3">
-            {tasks.map(task => <TaskCard key={task.id} task={task} />)}
-            {tasks.length === 0 && (
-                <div className="h-24 border-2 border-dashed border-gray-300 rounded-lg"></div>
-            )}
+// 2. Colonne du Kanban
+const KanbanColumn = ({ title, tasks, onToggle, onDelete, colorClass }) => (
+  <div className="bg-gray-50 rounded-xl border border-gray-100 p-4 flex-1 flex flex-col h-full">
+    <h3 className="font-bold mb-4 flex items-center justify-between text-gray-800">
+      {title}
+      <span className={`text-xs px-2 py-1 rounded-full ${colorClass}`}>
+        {tasks.length}
+      </span>
+    </h3>
+    <div className="space-y-3 overflow-y-auto flex-1 pr-1">
+      {tasks.map((task) => (
+        <TaskCard
+          key={task.id}
+          task={task}
+          onToggle={onToggle}
+          onDelete={onDelete}
+        />
+      ))}
+      {tasks.length === 0 && (
+        <div className="h-24 border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center text-gray-400 text-sm font-medium">
+          Aucune tâche
         </div>
+      )}
     </div>
+  </div>
 );
 
-// Barre latérale de droite
-const TasksSidebar = () => (
-    <div className="w-80 bg-gray-50 border-l border-gray-200 flex flex-col p-4 space-y-4">
-        <div className="bg-white p-4 rounded-md border shadow-sm flex-1">
-            <h3 className="font-semibold mb-2">Notes</h3>
-            <div className="h-32 bg-gray-50 rounded-md border"></div>
-        </div>
-        <div className="bg-white p-4 rounded-md border shadow-sm flex-1">
-            <h3 className="font-semibold mb-2">Collaborateurs</h3>
-            <div className="h-32 bg-gray-50 rounded-md border"></div>
-        </div>
-    </div>
-);
-
-// --- COMPOSANT PRINCIPAL DE LA PAGE ---
+// --- COMPOSANT PRINCIPAL ---
 export default function TasksPage() {
+  const [tasks, setTasks] = useState([]);
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+
+  // 🔄 Chargement initial
+  useEffect(() => {
+    fetchTasks();
+  }, []);
+
+  const fetchTasks = async () => {
+    try {
+      const res = await fetch("http://127.0.0.1:8000/api/tasks", {
+        credentials: "include",
+      });
+      if (res.ok) setTasks(await res.json());
+    } catch (e) {
+      console.error("Erreur de chargement des tâches", e);
+    }
+  };
+
+  // ➕ Création d'une tâche
+  const handleCreateTask = async (e) => {
+    e.preventDefault();
+    if (!newTaskTitle.trim()) return;
+
+    try {
+      const res = await fetch("http://127.0.0.1:8000/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: newTaskTitle }),
+        credentials: "include",
+      });
+      if (res.ok) {
+        setNewTaskTitle(""); // On vide le champ
+        fetchTasks(); // On rafraîchit la liste
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  // ✅ Cocher / Décocher
+  const handleToggleTask = async (id) => {
+    try {
+      const res = await fetch(`http://127.0.0.1:8000/api/tasks/${id}/toggle`, {
+        method: "PUT",
+        credentials: "include",
+      });
+      if (res.ok) {
+        // Mise à jour immédiate côté front pour éviter un délai d'affichage
+        setTasks((prev) =>
+          prev.map((t) => (t.id === id ? { ...t, isDone: !t.isDone } : t)),
+        );
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  // 🗑️ Suppression
+  const handleDeleteTask = async (id) => {
+    if (!window.confirm("Voulez-vous vraiment supprimer cette tâche ?")) return;
+
+    try {
+      const res = await fetch(`http://127.0.0.1:8000/api/tasks/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (res.ok) {
+        setTasks((prev) => prev.filter((t) => t.id !== id));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  // Séparation des tâches pour le Kanban
+  const tasksToDo = tasks.filter((t) => !t.isDone);
+  const tasksDone = tasks.filter((t) => t.isDone);
+
   return (
     <div className="flex flex-1 overflow-hidden bg-white">
-        
-        {/* Colonne principale (Contenu + Kanban) */}
-        <div className="flex-1 flex flex-col p-6">
-            
-            {/* Header de la page Tâches */}
-            <div className="flex justify-between items-center mb-6">
-                <div>
-                    <h2 className="text-2xl font-bold">Tâches</h2>
-                    <p className="text-sm text-gray-500">Samedi 13 Février</p>
-                </div>
-                <div className="flex items-center space-x-2">
-                    <button className="px-4 py-2 rounded-lg bg-gray-800 text-white text-sm font-semibold">+ Ajouter</button>
-                    <button className="px-4 py-2 rounded-lg border border-gray-300 text-sm font-semibold flex items-center space-x-1">
-                        <ShareIcon />
-                        <span>Partager</span>
-                    </button>
-                </div>
-            </div>
-
-            {/* Filtre Client */}
-            <div className="mb-6">
-                <button className="flex items-center space-x-1 p-2 bg-white border rounded-md shadow-sm text-sm font-medium">
-                    <span>Client: Médecin Dupont</span>
-                    <ChevronDownIcon />
-                </button>
-            </div>
-
-            {/* Board Kanban */}
-            <div className="flex flex-1 gap-6 overflow-x-auto">
-                <KanbanColumn title="À faire" count={tasksToDo.length} tasks={tasksToDo} />
-                <KanbanColumn title="En cours" count={tasksInProgress.length} tasks={tasksInProgress} />
-                <KanbanColumn title="Terminé" count={tasksDone.length} tasks={tasksDone} />
-            </div>
+      {/* Colonne principale (Contenu + Kanban) */}
+      <div className="flex-1 flex flex-col p-8 h-full">
+        {/* Header de la page */}
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h2 className="text-3xl font-bold text-gray-900">Mes Tâches</h2>
+            <p className="text-sm text-gray-500 mt-1">
+              Gérez vos rappels personnels (Privé)
+            </p>
+          </div>
+          <div className="flex items-center space-x-3">
+            <button className="px-4 py-2 rounded-xl border border-gray-200 text-sm font-semibold flex items-center space-x-2 text-gray-600 hover:bg-gray-50 transition">
+              <ShareIcon />
+              <span>Partager</span>
+            </button>
+          </div>
         </div>
 
-        {/* Barre latérale de droite */}
-        <TasksSidebar />
+        {/* Barre de création rapide */}
+        <form onSubmit={handleCreateTask} className="mb-8 flex gap-3">
+          <input
+            type="text"
+            placeholder="Que devez-vous faire aujourd'hui ? (ex: Rappeler Mme Dupont à 14h)"
+            value={newTaskTitle}
+            onChange={(e) => setNewTaskTitle(e.target.value)}
+            className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 transition"
+          />
+          <button
+            type="submit"
+            disabled={!newTaskTitle.trim()}
+            className="bg-gray-900 text-white px-6 py-3 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-gray-800 disabled:opacity-50 transition"
+          >
+            <PlusIcon /> Ajouter
+          </button>
+        </form>
+
+        {/* Board Kanban */}
+        <div className="flex flex-1 gap-6 overflow-hidden">
+          <KanbanColumn
+            title="À faire"
+            tasks={tasksToDo}
+            onToggle={handleToggleTask}
+            onDelete={handleDeleteTask}
+            colorClass="bg-blue-100 text-blue-700"
+          />
+          <KanbanColumn
+            title="Terminées"
+            tasks={tasksDone}
+            onToggle={handleToggleTask}
+            onDelete={handleDeleteTask}
+            colorClass="bg-green-100 text-green-700"
+          />
+        </div>
+      </div>
     </div>
   );
 }
