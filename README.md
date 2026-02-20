@@ -1,73 +1,69 @@
-# 📬 Étape 5 : Messagerie Métier, Sécurité MVP & Filtrage des Accès (Front/Back)
+# 🏛️ Projet Olympe - Solution de Télésecrétariat Médical (MVP FINALISÉ)
 
-Cette étape marque le passage d'un socle technique à une application métier opérationnelle. Elle implémente la **gestion des messages**, le **cloisonnement des données** par secrétaire (exigence MVP) et la **persistance des notes administratives**.
+Ce dépôt contient la version aboutie du **Minimum Viable Product (MVP)**. L'application est désormais une plateforme métier complète, sécurisée et interconnectée, permettant une gestion multi-utilisateurs avec un cloisonnement étanche des données médicales.
 
 ## ℹ️ 1. INFORMATIONS SUR CETTE ÉTAPE
 
-* **Branche Git** : `feature/messaging-security-mvp`
-* **Objectif** : Finaliser le module Messagerie et garantir qu'une secrétaire ne voit que les clients qui lui sont affectés.
-* **Statut** : ✅ Validé & Fonctionnel
+* **Branche Git** : "main"
+* **Objectif** : Clôture du cycle de développement MVP, sécurisation totale des accès API et interconnexion des modules (Dashboard -> Messagerie).
+* **Statut** : ✅ 100% Fonctionnel, Sécurisé et Documenté.
 
 ## 🛠️ 2. MODIFICATIONS DÉTAILLÉES
 
-### 📂 Côté Backend (Symfony)
+### 📂 Architecture Backend (Symfony)
 
-* **`src/Entity/User.php`** :
-    * **Gouvernance MVP** : Ajout d'une relation `ManyToMany` avec l'entité `Client`. Cette structure permet l'affectation flexible de plusieurs médecins à une même secrétaire.
-* **`src/Controller/MessageController.php`** :
-    * **Filtrage de Sécurité** : Refonte des méthodes `all` et `unread`. Elles injectent désormais l'utilisateur connecté via `$this->getUser()` et filtrent les messages par `client_id` basé sur la liste d'affectation de l'utilisateur.
-    * **Persistance des Notes** : Création de la route `POST /note` pour sauvegarder les consignes internes sans modifier l'état "Lu/Non-lu" du message.
-    * **Nettoyage de Base** : Implémentation de la méthode `delete` pour autoriser la suppression physique des entrées obsolètes.
-* **`src/Controller/SecurityController.php`** :
-    * **Payload Étendu** : La route `/login` renvoie désormais le `firstName`, le `lastName` et les `roles` pour personnaliser l'interface dès la connexion.
+* **`UserController.php` (Administration Équipe)** :
+    * Implémentation du CRUD complet pour les secrétaires.
+    * Hashage sécurisé des mots de passe et gestion des rôles (Admin vs Secrétaire).
+    * Système de "Toggle" pour activer/désactiver les accès en un clic.
+* **`RendezVousController.php` (Sécurisation de l'Agenda)** :
+    * Intégration de la logique de "Data Scoping" : les secrétaires ne reçoivent que les RDV des médecins (clients) qui leur sont spécifiquement affectés via l'AssignmentRepository.
+* **`AppelantController.php` (Protection des Données)** :
+    * Sécurisation de la suppression des patients avec un bloc "try/catch" global.
+    * Empêche la suppression si le patient possède un historique (RDV ou messages) pour éviter les crashs de contrainte d'intégrité.
+* **`DashboardController.php` & `MessageController.php`** :
+    * Filtrage des routes `/unread` et `/all` pour garantir que le tableau de bord et la messagerie respectent strictement le périmètre de chaque secrétaire.
 
-### 📂 Côté Frontend (React)
+### 📂 Architecture Frontend (React)
 
-#### A. Module Messagerie (`MessagesPage.jsx`)
-* **Architecture Tri-partite** :
-    * **`MessageList`** : Gestion des onglets "Tous / Nouveaux" et intégration d'un système de **sélection multiple** par cases à cocher.
-    * **`Conversation`** : Vue interactive permettant le basculement rapide entre les états "Traité" et "Non lu".
-    * **`InfoPanel`** : Panneau latéral affichant les données du patient et le formulaire de notes internes.
-* **Logique de Persistance** :
-    * **Sauvegarde Silencieuse** : Utilisation de l'événement `onBlur` sur les notes administratives pour déclencher une sauvegarde automatique dès que la secrétaire quitte le champ de saisie.
-* **Annuaire Rapide** : Implémentation d'une modale flottante connectée au référentiel des Appelants, permettant de déclencher un appel fictif sans rompre le flux de travail des messages.
+* **`MainLayout.jsx` (Navigation Intelligente)** :
+    * Affichage conditionnel du menu "Équipe" réservé aux administrateurs.
+    * Correction de la zone de survol (hover) des icônes pour une navigation fluide.
+* **`HomePage.jsx` & `MessagesPage.jsx` (Deep Linking)** :
+    * Branchement des boutons de raccourcis du Dashboard.
+    * Navigation directe : cliquer sur un message dans le Dashboard redirige vers la messagerie et ouvre automatiquement le message sélectionné grâce à "useLocation" et "state".
+* **`ContactPage.jsx` (UX & Fiabilité)** :
+    * Correction de la collision d'IDs entre Clients et Appelants lors des suppressions.
+    * Synchronisation automatique de la liste de droite lors du changement d'onglet (Clients/Appelants) via "useEffect".
+* **Normalisation des données** :
+    * Conversion systématique des IDs en entiers ("parseInt") avant chaque envoi "POST" ou "PUT" pour garantir la compatibilité avec le moteur Doctrine du Backend.
 
-## 🧪 3. PROTOCOLE DE VALIDATION (TESTS)
+## 🧪 3. PROTOCOLE DE VALIDATION (TESTS MÉTIER)
 
-### Test A : Étanchéité des Données (Règle d'Or MVP)
-1. Connectez-vous avec le compte `admin@olympe.com`.
-2. Allez dans "Messages" et tentez de créer un "+ Nouveau".
-    * **Attendu** : La liste des médecins doit être vide (si aucune affectation n'est faite en base).
-3. Utilisez la route `/api/messages/link-test` pour lier un médecin.
-4. Actualisez la page.
-    * **Attendu** : Seuls les messages et le médecin lié doivent apparaître. Preuve que le filtrage par session fonctionne.
+### Test A : Isolation des données (Cloisonnement)
+1. Créer deux secrétaires avec des médecins différents.
+2. Vérifier que l'agenda et la messagerie de l'une ne contiennent AUCUNE donnée de l'autre.
+    * **Résultat attendu** : Étanchéité totale confirmée par le serveur (403 ou tableau vide).
 
-### Test B : Gestion des États et Sélection
-1. Cliquez sur un message dans l'onglet "Nouveaux". Cliquez sur "Traiter".
-    * **Attendu** : Le message disparaît de l'onglet "Nouveaux" et la conversation suivante est sélectionnée automatiquement.
-2. Cliquez sur "Remettre en non lu".
-    * **Attendu** : Le message réapparaît instantanément dans la liste prioritaire.
+### Test B : Flux de travail Dashboard -> Message
+1. Sur la Home, cliquer sur un message spécifique dans le widget.
+    * **Résultat attendu** : La page /messages s'ouvre et le panneau de détail affiche immédiatement le contenu du message cliqué.
 
-### Test C : Persistance des Notes de Secrétariat
-1. Dans le panneau "Info" à droite, saisissez un texte dans "Notes administratives".
-2. Cliquez n'importe où ailleurs sur la page (déclenchement du `onBlur`).
-3. Rafraîchissez la page (Touche F5).
-    * **Attendu** : Le texte saisi doit être intact. Preuve que la requête `POST /note` a été validée.
+### Test C : Sécurité de Suppression
+1. Tenter de supprimer un patient lié à un rendez-vous dans l'agenda.
+    * **Résultat attendu** : Une alerte propre indique que la suppression est impossible car le dossier contient un historique.
 
-### Test D : Suppression de Masse
-1. Cochez 3 messages différents via les cases à cocher de la liste de gauche.
-2. Cliquez sur le bouton rouge "Supprimer (3)" apparu en haut de la liste.
-3. Validez l'alerte de confirmation native.
-    * **Attendu** : Les 3 messages disparaissent de la liste et de la base de données.
+## ⚙️ 4. INSTALLATION
 
-### Test E : Annuaire et Appel
-1. Cliquez sur le bouton "Contact" à côté de "+ Nouveau".
-2. Saisissez le nom d'un patient existant.
-3. Cliquez sur l'icône téléphone bleue.
-    * **Attendu** : Une alerte "Appel vers [Numéro]..." s'affiche. Preuve de la liaison avec le référentiel Appelants.
+" cd server "
+" composer install "
+" php bin/console doctrine:migrations:migrate "
+" cd ../client "
+" npm install "
+" npm run dev "
 
-## ⚠️ 4. RÈGLES DE DÉVELOPPEMENT
+## ⚠️ 5. RÈGLES D'OR DU PROJET
 
-1. **Sécurité Inter-Ports** : Toujours inclure `credentials: 'include'` dans les `fetch` vers Symfony pour que le serveur puisse identifier la secrétaire via ses cookies de session.
-2. **Synchronisation d'État** : Lors de la mise à jour d'une note, mettre à jour à la fois `selectedMsg` (pour l'affichage immédiat) et la liste `messages` (pour éviter un rollback visuel lors du changement de filtre).
-3. **Méthode HTTP** : Préférer le `POST` pour les mises à jour partielles (comme les notes) afin de contourner les limitations de certains pare-feux sur le `PATCH` ou `PUT`.
+1. **Sécurité Inter-Ports** : Toujours utiliser "credentials: 'include'" dans les appels fetch pour maintenir la session entre le port 5173 (React) et 8000 (Symfony).
+2. **Gestion des IDs** : Ne jamais envoyer d'IDs sous forme de chaînes de caractères ; toujours utiliser "parseInt()" côté Front.
+3. **Fichiers Sensibles** : Les dossiers "vendor/", "node_modules/" et les fichiers ".env.local" sont strictement exclus du dépôt via les fichiers ".gitignore".
