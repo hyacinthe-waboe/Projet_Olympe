@@ -90,7 +90,7 @@ const HomePage = () => {
             ))}
             {tasks.length === 0 && <p className="text-gray-500">Aucune tâche en cours.</p>}
           </ul>
-          <button className="mt-4 text-sm font-medium text-blue-600 hover:underline">
+          <button onClick={() => navigate('/tasks')} className="mt-4 text-sm font-medium text-blue-600 hover:underline">
             Voir toutes les tâches &rarr;
           </button>
         </div>
@@ -136,7 +136,7 @@ const HomePage = () => {
           </h2>
           <ul className="space-y-3">
             {messages.map(msg => (
-              <li key={msg.id} className="p-3 bg-gray-50 rounded-md border border-gray-200 truncate cursor-pointer hover:bg-gray-100 transition">
+              <li key={msg.id} className="p-3 bg-gray-50 rounded-md border border-gray-200 truncate cursor-pointer hover:bg-gray-100 transition" onClick={() => navigate('/messages', { state: { openMessageId: msg.id } })}>
                 <div className="flex justify-between items-center mb-1">
                     <span className="font-medium text-gray-900">{msg.from}</span>
                     <span className="text-xs text-gray-400">{msg.date}</span>
@@ -150,7 +150,7 @@ const HomePage = () => {
                 <p className="text-gray-500 italic py-2">Aucun nouveau message.</p>
             )}
           </ul>
-          <button className="mt-4 text-sm font-medium text-blue-600 hover:underline">
+          <button onClick={() => navigate('/messages')} className="mt-4 text-sm font-medium text-blue-600 hover:underline">
             Ouvrir la messagerie &rarr;
           </button>
         </div>
@@ -170,7 +170,7 @@ const HomePage = () => {
             ))}
              {missedCalls.length === 0 && <p className="text-gray-500">Aucun appel manqué.</p>}
           </ul>
-          <button className="mt-4 text-sm font-medium text-blue-600 hover:underline">
+          <button onClick={() => navigate('/phone')} className="mt-4 text-sm font-medium text-blue-600 hover:underline">
             Voir l'historique &rarr;
           </button>
         </div>

@@ -38,6 +38,7 @@ export default function LoginPage() {
 
       if (response.ok) {
         localStorage.setItem('isAuthenticated', 'true');
+        localStorage.setItem('user', JSON.stringify(data));
 
         // On sauvegarde TOUT ce que le backend nous a envoyé
         localStorage.setItem('userEmail', data.email);

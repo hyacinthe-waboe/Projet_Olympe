@@ -27,46 +27,77 @@ class MessageController extends AbstractController
             'doctorName' => $msg->getClient()->getLastName(),
             'isRead' => $msg->isRead(),
             'adminNote' => $msg->getAdminNote(),
-            // Données réelles du patient pour le panneau Info
             'patient' => $appelant ? [
                 'phone' => $appelant->getPhone(),
-                'email' => "Non renseigné",
+                'email' => $appelant->getEmail() ?: "Non renseigné",
                 'lastname' => $appelant->getLastname(),
                 'firstname' => $appelant->getFirstname(),
             ] : null
         ];
     }
 
-    //Récupérer uniquement les messages non lus autorisés
+//Récupérer uniquement les messages non lus autorisés
     #[Route('/unread', methods: ['GET'])]
-    public function getUnread(MessageRepository $repo): JsonResponse {
-        /** @var \App\Entity\User $user */
+    public function getUnread(MessageRepository $repo, \App\Repository\AssignmentRepository $assignmentRepo): JsonResponse 
+    {
         $user = $this->getUser();
         if (!$user) return $this->json(['error' => 'Non autorisé'], 401);
 
-        // Si c'est l'admin, il voit tout. Sinon, on filtre par ses clients.
-        $criteria = ['isRead' => false];
-        if (!in_array('ROLE_ADMIN', $user->getRoles())) {
-            $criteria['client'] = $user->getClients()->toArray();
+        $isAdmin = in_array('ROLE_ADMIN', $user->getRoles());
+        
+        // Si c'est l'admin, il voit tous les messages non lus
+        if ($isAdmin) {
+            $messages = $repo->findBy(['isRead' => false], ['createdAt' => 'DESC']);
+        } else {
+            // ✅ FILTRE SÉCURITÉ : On cherche les médecins affectés à la secrétaire
+            $assignments = $assignmentRepo->findBySecretaire($user->getId());
+            $clientIds = array_map(function($a) {
+                return $a->getClient()->getId();
+            }, $assignments);
+
+            if (empty($clientIds)) {
+                return $this->json(['messages' => []]);
+            }
+            
+            // On cherche les messages non lus destinés à SES médecins
+            $messages = $repo->findBy([
+                'isRead' => false,
+                'client' => $clientIds
+            ], ['createdAt' => 'DESC']);
         }
 
-        $messages = $repo->findBy($criteria, ['createdAt' => 'DESC']);
-        return $this->json(['messages' => array_map([$this, 'serializeMessage'], $messages)]);
+        // On n'envoie que les 5 plus récents pour le dashboard
+        $recentMessages = array_slice($messages, 0, 5);
+
+        return $this->json(['messages' => array_map([$this, 'serializeMessage'], $recentMessages)]);
     }
 
-    //Récupérer uniquement tous les messages autorisés
+    // Récupérer uniquement tous les messages autorisés
     #[Route('/all', methods: ['GET'])]
-    public function getAll(MessageRepository $repo): JsonResponse {
-        /** @var \App\Entity\User $user */
+    public function getAll(MessageRepository $repo, \App\Repository\AssignmentRepository $assignmentRepo): JsonResponse 
+    {
         $user = $this->getUser();
         if (!$user) return $this->json(['error' => 'Non autorisé'], 401);
 
-        $criteria = [];
-        if (!in_array('ROLE_ADMIN', $user->getRoles())) {
-            $criteria['client'] = $user->getClients()->toArray();
+        $isAdmin = in_array('ROLE_ADMIN', $user->getRoles());
+        
+        if ($isAdmin) {
+            $messages = $repo->findBy([], ['createdAt' => 'DESC']);
+        } else {
+            // ✅ FILTRE SÉCURITÉ : Exactement comme pour l'Agenda et le Dashboard
+            $assignments = $assignmentRepo->findBySecretaire($user->getId());
+            $clientIds = array_map(function($a) {
+                return $a->getClient()->getId();
+            }, $assignments);
+
+            if (empty($clientIds)) {
+                return $this->json(['messages' => []]);
+            }
+            
+            // On cherche uniquement les messages destinés à ses médecins
+            $messages = $repo->findBy(['client' => $clientIds], ['createdAt' => 'DESC']);
         }
 
-        $messages = $repo->findBy($criteria, ['createdAt' => 'DESC']);
         return $this->json(['messages' => array_map([$this, 'serializeMessage'], $messages)]);
     }
 

@@ -131,28 +131,41 @@ class AppelantController extends AbstractController
         ], 201);
     }
     
-    // 🗑️ SUPPRESSION
+// 🗑️ SUPPRESSION (Version Blindée)
     #[Route('/{id}', name: 'app_appelant_delete', methods: ['DELETE'])]
     public function delete(int $id, \App\Repository\RendezVousRepository $rdvRepo): JsonResponse
     {
-        // 🚨 Correction ici : on utilise 'appelantRepository' et non 'repository'
-        $appelant = $this->appelantRepository->find($id);
+        try {
+            $appelant = $this->appelantRepository->find($id);
 
-        if (!$appelant) {
-            return $this->json(['error' => 'Patient introuvable'], 404);
-        }
+            if (!$appelant) {
+                return $this->json(['error' => 'Patient introuvable'], 404);
+            }
 
-        // 🛡️ SÉCURITÉ : On vérifie si le patient a des RDV
-        $hasRdvs = $rdvRepo->findOneBy(['appelant' => $appelant]);
-        if ($hasRdvs) {
+            // 🛡️ SÉCURITÉ 1 : On vérifie si le patient a des RDV
+            $hasRdvs = $rdvRepo->findOneBy(['appelant' => $appelant]);
+            if ($hasRdvs) {
+                return $this->json([
+                    // ✍️ NOUVEAU TEXTE PLUS PRO
+                    'error' => 'Ce dossier patient contient des rendez-vous. Suppression impossible.'
+                ], 400);
+            }
+
+            // 🛡️ TENTATIVE DE SUPPRESSION
+            $this->entityManager->remove($appelant);
+            $this->entityManager->flush();
+
+            return $this->json(['message' => 'Patient supprimé avec succès']);
+
+        } catch (\Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException $e) {
             return $this->json([
-                'error' => 'Impossible de supprimer ce patient car il est lié à des rendez-vous dans l\'agenda.'
+                // ✍️ NOUVEAU TEXTE PLUS PRO
+                'error' => 'Ce patient possède un historique (messages, etc.). Suppression impossible.'
             ], 400);
+        } catch (\Throwable $e) {
+            return $this->json([
+                'error' => 'Erreur système : ' . $e->getMessage()
+            ], 500);
         }
-
-        $this->entityManager->remove($appelant);
-        $this->entityManager->flush();
-
-        return $this->json(['message' => 'Patient supprimé avec succès']);
     }
 }

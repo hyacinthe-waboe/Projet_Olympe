@@ -33,12 +33,18 @@ security:
                 path: /
 
     # Note: Only the *first* matching rule is applied
+    # server/config/packages/security.yaml
     access_control:
         # Autorise l'accès à /api/me seulement si on est connecté
         - { path: ^/api/me, roles: IS_AUTHENTICATED_FULLY }
-        # L'admin peut gérer les users
+        
+        # ✅ AJOUT : Autorise les secrétaires sur leurs outils de travail
+        - { path: ^/api/messages/my-clients, roles: [ROLE_ADMIN, ROLE_SECRETAIRE] }
+        - { path: ^/api/appelants, roles: [ROLE_ADMIN, ROLE_SECRETAIRE] }
+        
+        # L'admin gère le reste
         - { path: ^/api/admin, roles: ROLE_ADMIN }
-
+        
 when@test:
     security:
         password_hashers:

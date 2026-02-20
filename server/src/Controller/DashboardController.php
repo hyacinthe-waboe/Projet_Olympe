@@ -11,38 +11,50 @@ use Symfony\Component\Routing\Annotation\Route;
 class DashboardController extends AbstractController
 {
     #[Route('', name: 'api_dashboard_index', methods: ['GET'])]
-    public function index(RendezVousRepository $rdvRepo): JsonResponse
+    public function index(RendezVousRepository $rdvRepo, \App\Repository\AssignmentRepository $assignmentRepo): JsonResponse
     {
-        // 1. Définir la plage "Aujourd'hui"
         $now = new \DateTime();
         $endOfDay = (clone $now)->setTime(23, 59, 59);
+        $user = $this->getUser();
+        $isAdmin = in_array('ROLE_ADMIN', $user->getRoles());
 
-        // 2. Chercher les RDV à venir aujourd'hui (triés par heure)
-        // On utilise QueryBuilder pour être précis
-        $rdvs = $rdvRepo->createQueryBuilder('r')
+        $qb = $rdvRepo->createQueryBuilder('r')
             ->where('r.start >= :now')
             ->andWhere('r.start <= :endOfDay')
             ->setParameter('now', $now)
-            ->setParameter('endOfDay', $endOfDay)
-            ->orderBy('r.start', 'ASC')
-            ->setMaxResults(5) // On en prend 5 max pour l'affichage
+            ->setParameter('endOfDay', $endOfDay);
+
+        // ✅ FILTRE SÉCURITÉ : Si ce n'est pas l'admin, on filtre par médecins affectés
+        if (!$isAdmin) {
+            $assignments = $assignmentRepo->findBySecretaire($user->getId());
+            $clientIds = array_map(function($a) {
+                return $a->getClient()->getId();
+            }, $assignments);
+
+            if (empty($clientIds)) {
+                // Si la secrétaire n'a aucun médecin, on renvoie un tableau vide tout de suite
+                return $this->json(['appointments' => []]);
+            }
+            
+            $qb->andWhere('r.client IN (:clients)')
+               ->setParameter('clients', $clientIds);
+        }
+
+        $rdvs = $qb->orderBy('r.start', 'ASC')
+            ->setMaxResults(5)
             ->getQuery()
             ->getResult();
 
-        // 3. Formater les données pour le Frontend
         $appointmentsData = array_map(function($rdv) {
             return [
                 'id' => $rdv->getId(),
-                'time' => $rdv->getStart()->format('H:i'), // Heure format 09:00
+                'time' => $rdv->getStart()->format('H:i'),
                 'name' => 'RDV ' . $rdv->getAppelant()->getFirstname() . ' ' . $rdv->getAppelant()->getLastname(),
-                // On pourrait ajouter le médecin si besoin :
-                // 'doctor' => $rdv->getClient()->getLastName()
             ];
         }, $rdvs);
 
         return $this->json([
             'appointments' => $appointmentsData,
-            // Pour l'instant, on ne renvoie que les RDV car le reste (Tâches, Messages) n'existe pas en BDD
         ]);
     }
 }

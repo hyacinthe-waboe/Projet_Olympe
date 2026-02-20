@@ -20,6 +20,7 @@ import VoicemailPage from './pages/VoicemailPage.jsx';
 import InternalChatPage from './pages/InternalChatPage.jsx';
 import NotificationsPage from './pages/NotificationsPage.jsx';
 import HelpPage from './pages/HelpPage.jsx';
+import TeamPage from './pages/TeamPage.jsx';
 
 // --- COMPOSANT DE PROTECTION ---
 // Si pas connecté, on renvoie vers /login
@@ -28,6 +29,18 @@ const ProtectedRoute = ({ children }) => {
   
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+  return children;
+};
+
+const AdminRoute = ({ children }) => {
+  const userStr = localStorage.getItem('user');
+  const userData = userStr ? JSON.parse(userStr) : null;
+  const roles = userData?.roles || userData?.user?.roles || [];
+  console.log("Roles détectés :", roles);
+  
+  if (!roles.includes('ROLE_ADMIN')) {
+    return <Navigate to="/" replace />;
   }
   return children;
 };
@@ -57,6 +70,7 @@ export default function App() {
         <Route path="/internal-chat" element={<InternalChatPage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/help" element={<HelpPage />} />
+        <Route path="/team" element={<AdminRoute><TeamPage /></AdminRoute>} />
       </Route>
 
       {/* Redirection par défaut : Si l'URL n'existe pas, on renvoie vers l'accueil (qui renverra vers Login si besoin) */}

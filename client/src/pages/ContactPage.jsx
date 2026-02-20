@@ -386,6 +386,19 @@ const FormInput = ({
 
 // --- PAGE PRINCIPALE ---
 export default function ContactPage() {
+  const userStr = localStorage.getItem("user");
+  let isAdmin = false;
+  if (userStr) {
+    try {
+      const userData = JSON.parse(userStr);
+      // On cherche les rôles peu importe comment ils ont été sauvegardés
+      const roles = userData.roles || userData.user?.roles || [];
+      isAdmin = roles.includes("ROLE_ADMIN");
+    } catch (e) {
+      console.error("Erreur lecture rôle", e);
+    }
+  }
+
   const [activeTab, setActiveTab] = useState("clients");
   const [searchTerm, setSearchTerm] = useState("");
   const [contacts, setContacts] = useState([]);
@@ -398,58 +411,83 @@ export default function ContactPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const resClients = await fetch(
-          "http://127.0.0.1:8000/api/admin/clients",
-          { credentials: "include" },
-        );
-        const clientsData = resClients.ok ? await resClients.json() : [];
+        const clientUrl = isAdmin
+          ? "http://127.0.0.1:8000/api/admin/clients"
+          : "http://127.0.0.1:8000/api/me/assignments";
 
-        const formattedClients = clientsData.map((c) => ({
-          id: c.id,
-          type: "client",
-          firstName: c.firstName, // On garde les données brutes aussi
-          lastName: c.lastName,
-          name: `${c.firstName} ${c.lastName}`,
-          specialty: c.specialty || "Spécialité inconnue",
-          avatar: c.firstName.charAt(0).toUpperCase(),
-          color: "bg-blue-600",
-          phone: c.phone || "",
-          email: c.email || "",
-          address: c.address || "",
-          birthDate: c.birthDate || "",
-        }));
+        const resClients = await fetch(clientUrl, { credentials: "include" });
+        if (!resClients.ok)
+          throw new Error(`Erreur serveur: ${resClients.status}`);
 
+        const data = await resClients.json();
+
+        // ✅ DEBALLAGE HYDRA : On cherche dans 'hydra:member', sinon on prend le tableau
+        const rawArray =
+          data["hydra:member"] || (Array.isArray(data) ? data : []);
+
+        const formattedClients = rawArray
+          .map((item) => {
+            // ✅ EXTRACTION : Le médecin est soit l'objet lui-même, soit dans la clé 'client'
+            const c = item.client || item;
+            if (!c || typeof c !== "object") return null;
+
+            // On harmonise les clés (firstName vs firstname)
+            const fName = c.firstName || c.firstname || "";
+            const lName = c.lastName || c.lastname || "";
+
+            if (!fName && !lName && !c.name) return null;
+
+            return {
+              id: c.id,
+              type: "client",
+              firstName: fName,
+              lastName: lName,
+              name: c.name || `Dr. ${fName} ${lName}`,
+              specialty: c.specialty || "Médecin",
+              avatar: (fName || lName || "U").charAt(0).toUpperCase(),
+              color: "bg-blue-600",
+              phone: c.phone || "",
+              email: c.email || "",
+              address: c.address || "",
+              birthDate: c.birthDate || "",
+            };
+          })
+          .filter(Boolean);
+
+        // --- Appelants ---
         const resAppelants = await fetch(
           "http://127.0.0.1:8000/api/appelants",
           { credentials: "include" },
         );
-        const appelantsData = resAppelants.ok ? await resAppelants.json() : [];
+        const apData = resAppelants.ok ? await resAppelants.json() : {};
+        const appelantsArray =
+          apData["hydra:member"] || (Array.isArray(apData) ? apData : []);
 
-        const formattedAppelants = appelantsData.map((a) => ({
-          id: a.id,
-          type: "appelant",
-          firstname: a.firstname, // On garde les données brutes
-          lastname: a.lastname,
-          name: `${a.firstname} ${a.lastname}`,
-          avatar: (
-            a.firstname?.charAt(0) ||
-            a.lastname?.charAt(0) ||
-            "?"
-          ).toUpperCase(),
-          color: "bg-purple-600",
-          phone: a.phone || "",
-          email: a.email || "",
-          birthDate: a.birthDate || "",
-          linkedClient: a.linkedClient ? a.linkedClient.id : null,
-        }));
+        const formattedAppelants = appelantsArray
+          .map((a) => {
+            const fName = a.firstname || a.firstName || "";
+            const lName = a.lastname || a.lastName || "";
+            return {
+              id: a.id,
+              type: "appelant",
+              firstname: fName,
+              lastname: lName,
+              name: a.name || `${fName} ${lName}`,
+              avatar: (fName?.charAt(0) || "?").toUpperCase(),
+              color: "bg-purple-600",
+              phone: a.phone || "",
+              email: a.email || "",
+              birthDate: a.birthDate || "",
+              linkedClient: a.linkedClient?.id || a.linkedClient || null,
+            };
+          })
+          .filter(Boolean);
 
         setContacts([...formattedClients, ...formattedAppelants]);
-
-        if (formattedClients.length > 0 && !selectedContact) {
+        if (formattedClients.length > 0 && !selectedContact)
           setSelectedContact(formattedClients[0]);
-        }
       } catch (error) {
-        console.error("Erreur de chargement:", error);
+        console.error("❌ Erreur de chargement ContactPage:", error);
       }
     };
 
@@ -510,17 +548,15 @@ export default function ContactPage() {
     setContactToEdit(null);
   };
 
-  const handleDeleteContact = async (contactId) => {
-    if (!window.confirm("Êtes-vous sûr de vouloir supprimer ce contact ?"))
-      return;
-
-    const contactToDelete = contacts.find((c) => c.id === contactId);
+const handleDeleteContact = async (contactToDelete) => {
+    // 1. On vérifie directement avec l'objet complet
+    if (!window.confirm("Êtes-vous sûr de vouloir supprimer ce contact ?")) return;
     if (!contactToDelete) return;
 
-    const url =
-      contactToDelete.type === "client"
-        ? `http://127.0.0.1:8000/api/admin/clients/${contactId}`
-        : `http://127.0.0.1:8000/api/appelants/${contactId}`;
+    // 2. On choisit la bonne URL selon le type réel de l'objet cliqué
+    const url = contactToDelete.type === "client"
+        ? `http://127.0.0.1:8000/api/admin/clients/${contactToDelete.id}`
+        : `http://127.0.0.1:8000/api/appelants/${contactToDelete.id}`;
 
     try {
       const response = await fetch(url, {
@@ -528,21 +564,19 @@ export default function ContactPage() {
         credentials: "include",
       });
 
-      // On récupère le texte brut d'abord au cas où ce ne soit pas du JSON
       const text = await response.text();
       let data = {};
-      try {
-        data = JSON.parse(text);
-      } catch (e) {
-        data = { error: "Erreur serveur inconnue" };
-      }
+      try { data = JSON.parse(text); } catch (e) { data = { error: "Erreur serveur inconnue" }; }
 
       if (response.ok) {
-        setContacts((prev) => prev.filter((c) => c.id !== contactId));
-        if (selectedContact?.id === contactId) setSelectedContact(null);
-        alert("Suppression réussie !"); // Optionnel : confirmation visuelle
+        // 3. On filtre en vérifiant l'ID ET le type pour éviter de supprimer le mauvais !
+        setContacts((prev) => prev.filter((c) => !(c.id === contactToDelete.id && c.type === contactToDelete.type)));
+        
+        if (selectedContact?.id === contactToDelete.id && selectedContact?.type === contactToDelete.type) {
+            setSelectedContact(null);
+        }
+        alert("Suppression réussie !");
       } else {
-        // 🚨 Affiche enfin le message de blocage du backend (RDV liés)
         alert(`Attention : ${data.error || "Action impossible"}`);
       }
     } catch (error) {
@@ -725,18 +759,22 @@ export default function ContactPage() {
             </div>
           </div>
           <div className="flex space-x-2 mt-4 sm:mt-0">
-            <button
-              onClick={() => onEdit(contact)}
-              className="p-2 bg-gray-100 rounded-lg text-gray-600 hover:bg-gray-200"
-            >
-              <FaEdit size={18} />
-            </button>
-            <button
-              onClick={() => onDelete(contact.id)}
-              className="p-2 bg-red-50 rounded-lg text-red-600 hover:bg-red-100"
-            >
-              <FaTrash size={18} />
-            </button>
+            {(isAdmin || contact.type !== "client") && (
+              <>
+                <button
+                  onClick={() => onEdit(contact)}
+                  className="p-2 bg-gray-100 rounded-lg text-gray-600 hover:bg-gray-200"
+                >
+                  <FaEdit size={18} />
+                </button>
+                <button
+                  onClick={() => onDelete(contact)}
+                  className="p-2 bg-red-50 rounded-lg text-red-600 hover:bg-red-100"
+                >
+                  <FaTrash size={18} />
+                </button>
+              </>
+            )}
           </div>
         </div>
         <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
@@ -818,6 +856,25 @@ export default function ContactPage() {
     </div>
   );
 
+  // ✅ DÉTECTEUR DE CHANGEMENT DE LISTE (Onglets ou Recherche)
+  useEffect(() => {
+    // Si on a des contacts dans la liste affichée à gauche
+    if (filteredContacts && filteredContacts.length > 0) {
+      // On vérifie si le contact actuellement sélectionné (à droite) fait bien partie de cette liste
+      const isStillVisible = filteredContacts.some(
+        (c) => selectedContact && c.id === selectedContact.id && c.type === selectedContact.type
+      );
+
+      // S'il n'y est pas (ex: on vient de changer d'onglet), on force la sélection du 1er élément
+      if (!isStillVisible) {
+        setSelectedContact(filteredContacts[0]);
+      }
+    } else {
+      // Si la liste est vide (aucun résultat de recherche ou aucun contact), on vide l'affichage
+      setSelectedContact(null);
+    }
+  }, [filteredContacts]); // Se déclenche à chaque changement de la liste gauche
+
   return (
     <div className="flex flex-1 overflow-hidden relative">
       <div className="w-96 bg-white border-r border-gray-200 flex flex-col">
@@ -833,30 +890,36 @@ export default function ContactPage() {
             <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           </div>
         </div>
-        <div className="p-4 border-b border-gray-200">
-          <button
-            onClick={handleOpenAddModal}
-            className="w-full flex items-center justify-center space-x-2 py-2 px-4 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700"
-          >
-            <FaPlus />
-            <span>
-              {activeTab === "clients"
-                ? "Ajouter un client"
-                : "Ajouter un appelant"}
-            </span>
-          </button>
-        </div>
+
+        {/* ✅ LE BOUTON UNIQUE ET PROTÉGÉ */}
+        {!(activeTab === "clients" && !isAdmin) && (
+          <div className="p-4 border-b border-gray-200">
+            <button
+              onClick={handleOpenAddModal}
+              className="w-full flex items-center justify-center space-x-2 py-2 px-4 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 shadow-sm"
+            >
+              <FaPlus />
+              <span>
+                {activeTab === "clients"
+                  ? "Ajouter un client"
+                  : "Ajouter un appelant"}
+              </span>
+            </button>
+          </div>
+        )}
+
+        {/* ✅ LES ONGLETS (Clients / Appelants) */}
         <div className="p-4 border-b border-gray-200">
           <div className="flex bg-gray-100 rounded-lg p-1">
             <button
               onClick={() => setActiveTab("clients")}
-              className={`flex-1 py-2 rounded-md text-sm font-semibold ${activeTab === "clients" ? "bg-white shadow" : "text-gray-600"}`}
+              className={`flex-1 py-2 rounded-md text-sm font-semibold transition ${activeTab === "clients" ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"}`}
             >
               Clients
             </button>
             <button
               onClick={() => setActiveTab("appelants")}
-              className={`flex-1 py-2 rounded-md text-sm font-semibold ${activeTab === "appelants" ? "bg-white shadow" : "text-gray-600"}`}
+              className={`flex-1 py-2 rounded-md text-sm font-semibold transition ${activeTab === "appelants" ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"}`}
             >
               Appelants
             </button>

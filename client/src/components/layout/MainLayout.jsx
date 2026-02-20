@@ -16,10 +16,23 @@ const MessageSquareIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="
 const HelpCircleIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>);
 const SettingsIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>);
 const TaskIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><path d="m9 14 2 2 4-4"></path></svg>);
-
+const TeamIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>);
 
 // --- Composant: Barre latérale principale (Sidebar) ---
 const Sidebar = () => {
+    // ✅ DÉTECTION DU RÔLE (Est-ce un Admin ?)
+    const userStr = localStorage.getItem("user");
+    let isAdmin = false;
+    if (userStr) {
+        try {
+            const userData = JSON.parse(userStr);
+            const roles = userData.roles || userData.user?.roles || [];
+            isAdmin = roles.includes("ROLE_ADMIN");
+        } catch (e) {
+            console.error("Erreur lecture rôle", e);
+        }
+    }
+
     const navLinkClasses = ({ isActive }) =>
         isActive
             ? 'p-3 bg-gray-100 rounded-lg text-gray-700'
@@ -27,20 +40,29 @@ const Sidebar = () => {
 
     return (
         <div className="h-screen bg-white border-r border-gray-200 flex flex-col items-center py-4 space-y-6">
-
             <NavLink to="/" title="Accueil - Dashboard" className="w-12 h-12 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors">
                 <img src={logo} alt="Logo Projet Olympe" className="w-full h-full object-contain p-1" />
             </NavLink>
 
             <nav className="flex flex-col items-center space-y-4">
-                <NavLink to="/" className={navLinkClasses} end><HomeIcon /></NavLink>
-                <NavLink to="/phone" className={navLinkClasses}><PhoneIcon /></NavLink>
-                <NavLink to="/users" className={navLinkClasses}><UserIcon /></NavLink>
-                <NavLink to="/calendar" className={navLinkClasses}><CalendarIcon /></NavLink>
-                <NavLink to="/emails" className={navLinkClasses}><MailIcon /></NavLink>
-                <NavLink to="/messages" className={navLinkClasses}><MessageSquareIcon /></NavLink>
-                <NavLink to="/tasks" className={navLinkClasses}><TaskIcon /></NavLink>
-                <NavLink to="/files" className={navLinkClasses}><FileTextIcon /></NavLink>
+                <NavLink to="/" className={navLinkClasses} end title="Accueil"><HomeIcon /></NavLink>
+                <NavLink to="/phone" className={navLinkClasses} title="Téléphone"><PhoneIcon /></NavLink>
+                <NavLink to="/users" className={navLinkClasses} title="Contacts"><UserIcon /></NavLink>
+                <NavLink to="/calendar" className={navLinkClasses} title="Agenda"><CalendarIcon /></NavLink>
+                <NavLink to="/emails" className={navLinkClasses} title="Emails"><MailIcon /></NavLink>
+                <NavLink to="/messages" className={navLinkClasses} title="Messagerie"><MessageSquareIcon /></NavLink>
+                <NavLink to="/tasks" className={navLinkClasses} title="Tâches"><TaskIcon /></NavLink>
+                <NavLink to="/files" className={navLinkClasses} title="Fichiers"><FileTextIcon /></NavLink>
+
+                {/* ✅ LE BOUTON ÉQUIPE (VISIBLE UNIQUEMENT PAR L'ADMIN) */}
+                {isAdmin && (
+                        <div className="flex flex-col items-center w-full">
+                            <div className="w-8 border-t border-gray-200 mb-4 mt-2"></div>
+                            <NavLink to="/team" className={navLinkClasses} title="Gestion de l'équipe">
+                                <TeamIcon />
+                            </NavLink>
+                        </div>
+                    )}
             </nav>
         </div>
     );
