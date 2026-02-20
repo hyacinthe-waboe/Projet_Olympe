@@ -1,6 +1,7 @@
 // src/pages/TasksPage.jsx
 
 import React, { useState, useEffect } from "react";
+import { useLocation } from 'react-router-dom';
 
 // --- Icônes ---
 const ShareIcon = () => (
@@ -57,10 +58,14 @@ const PlusIcon = () => (
 
 // --- COMPOSANTS DE LA PAGE ---
 
-// 1. Carte de tâche individuelle
-const TaskCard = ({ task, onToggle, onDelete }) => (
+// 1. Carte de tâche individuelle (Optimisée sans dépassement)
+const TaskCard = ({ task, onToggle, onDelete, isHighlighted }) => (
   <div
-    className={`bg-white p-4 rounded-xl border shadow-sm mb-3 flex items-start gap-3 transition-all ${task.isDone ? "opacity-60 bg-gray-50 border-gray-200" : "border-blue-100 hover:shadow-md"}`}
+    className={`p-4 rounded-xl border mb-3 flex items-start gap-3 transition-all duration-300 
+        ${task.isDone ? 'opacity-60 bg-gray-50 border-gray-200' : 'bg-white border-blue-100 hover:shadow-sm'}
+        /* Highlight : Bordure colorée et fond bleuté, mais pas d'ombre externe */
+        ${isHighlighted ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-500 ring-inset' : ''} 
+    `}
   >
     <input
       type="checkbox"
@@ -69,9 +74,7 @@ const TaskCard = ({ task, onToggle, onDelete }) => (
       className="mt-1 w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
     />
     <div className="flex-1 min-w-0">
-      <h4
-        className={`font-semibold text-sm truncate ${task.isDone ? "line-through text-gray-500" : "text-gray-800"}`}
-      >
+      <h4 className={`font-semibold text-sm truncate ${task.isDone ? "line-through text-gray-500" : "text-gray-800"}`}>
         {task.title}
       </h4>
       <p className="text-xs text-gray-400 mt-1">
@@ -89,22 +92,24 @@ const TaskCard = ({ task, onToggle, onDelete }) => (
   </div>
 );
 
-// 2. Colonne du Kanban
-const KanbanColumn = ({ title, tasks, onToggle, onDelete, colorClass }) => (
-  <div className="bg-gray-50 rounded-xl border border-gray-100 p-4 flex-1 flex flex-col h-full">
+// 2. Colonne du Kanban (Sécurisée contre le scroll horizontal)
+const KanbanColumn = ({ title, tasks, onToggle, onDelete, colorClass, highlightTaskId }) => (
+  <div className="bg-gray-50 rounded-xl border border-gray-100 p-4 flex-1 flex flex-col h-full overflow-hidden">
     <h3 className="font-bold mb-4 flex items-center justify-between text-gray-800">
       {title}
       <span className={`text-xs px-2 py-1 rounded-full ${colorClass}`}>
         {tasks.length}
       </span>
     </h3>
-    <div className="space-y-3 overflow-y-auto flex-1 pr-1">
+    {/* Ajout de px-1 et overflow-x-hidden pour bloquer définitivement le scroll horizontal */}
+    <div className="space-y-3 overflow-y-auto overflow-x-hidden flex-1 px-1">
       {tasks.map((task) => (
         <TaskCard
           key={task.id}
           task={task}
           onToggle={onToggle}
           onDelete={onDelete}
+          isHighlighted={task.id === highlightTaskId}
         />
       ))}
       {tasks.length === 0 && (
@@ -120,8 +125,29 @@ const KanbanColumn = ({ title, tasks, onToggle, onDelete, colorClass }) => (
 export default function TasksPage() {
   const [tasks, setTasks] = useState([]);
   const [newTaskTitle, setNewTaskTitle] = useState("");
+  const location = useLocation();
+  const [activeHighlightId, setActiveHighlightId] = useState(null);
 
-  // 🔄 Chargement initial
+  useEffect(() => {
+    // 1. On vérifie si un ID est passé dans la navigation
+    const idFromDashboard = location.state?.highlightTaskId;
+    
+    if (idFromDashboard) {
+      setActiveHighlightId(idFromDashboard);
+
+      // 2. On lance un timer de 3 secondes pour effacer l'effet
+      const timer = setTimeout(() => {
+        setActiveHighlightId(null);
+        // Optionnel : on nettoie l'état de navigation pour éviter 
+        // que le highlight revienne si on rafraîchit la page
+        window.history.replaceState({}, document.title);
+      }, 3000);
+
+      return () => clearTimeout(timer); // Nettoyage du timer si on quitte la page
+    }
+  }, [location]); 
+
+  // 🔄 Chargement initial des tâches
   useEffect(() => {
     fetchTasks();
   }, []);
@@ -243,6 +269,7 @@ export default function TasksPage() {
             onToggle={handleToggleTask}
             onDelete={handleDeleteTask}
             colorClass="bg-blue-100 text-blue-700"
+            highlightTaskId={activeHighlightId}
           />
           <KanbanColumn
             title="Terminées"
@@ -250,6 +277,7 @@ export default function TasksPage() {
             onToggle={handleToggleTask}
             onDelete={handleDeleteTask}
             colorClass="bg-green-100 text-green-700"
+            highlightTaskId={activeHighlightId}
           />
         </div>
       </div>

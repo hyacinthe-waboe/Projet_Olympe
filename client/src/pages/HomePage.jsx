@@ -80,9 +80,12 @@ const HomePage = () => {
                 <ul className="space-y-3">
                   {/* On n'affiche que les 3 premières tâches avec .slice(0, 3) */}
                   {tasks.slice(0, 3).map(task => (
-                    <li key={task.id} className="p-3 bg-gray-50 rounded-md border border-gray-200">
+                    <li 
+                      key={task.id} 
+                      onClick={() => navigate('/tasks', { state: { highlightTaskId: task.id } })}
+                      className="p-3 bg-gray-50 rounded-md border border-gray-200 cursor-pointer hover:bg-gray-100 transition shadow-sm hover:shadow"
+                    >
                       <p className="font-medium text-gray-900 truncate">{task.title}</p>
-                      {/* On affiche le nom du créateur grâce à notre mode Supervision ! */}
                       <span className="text-xs text-gray-500 font-medium">
                           Par {task.ownerName} <span className="text-gray-400 font-normal">• {task.createdAt}</span>
                       </span>
