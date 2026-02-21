@@ -1,69 +1,77 @@
-# 🏛️ Projet Olympe - Solution de Télésecrétariat Médical (MVP FINALISÉ)
+# 📝 Projet Olympe - Module de Gestion des Tâches (POST-MVP Phase 1)
 
-Ce dépôt contient la version aboutie du **Minimum Viable Product (MVP)**. L'application est désormais une plateforme métier complète, sécurisée et interconnectée, permettant une gestion multi-utilisateurs avec un cloisonnement étanche des données médicales.
+Ce document détaille l'implémentation du module de gestion des tâches (To-Do List), première étape majeure de la phase Post-MVP de l'application Olympe.
 
 ## ℹ️ 1. INFORMATIONS SUR CETTE ÉTAPE
 
-* **Branche Git** : "main"
-* **Objectif** : Clôture du cycle de développement MVP, sécurisation totale des accès API et interconnexion des modules (Dashboard -> Messagerie).
-* **Statut** : ✅ 100% Fonctionnel, Sécurisé et Documenté.
+* **Branche Git** : `feature/post-mvp-tasks`
+* **Objectif** : Ajouter un système de rappels internes pour les secrétaires, avec un mode supervision pour l'administrateur et une intégration directe au tableau de bord.
+* **Statut** : ✅ 100% Fonctionnel, Intégré et Sécurisé.
 
 ## 🛠️ 2. MODIFICATIONS DÉTAILLÉES
 
 ### 📂 Architecture Backend (Symfony)
 
-* **`UserController.php` (Administration Équipe)** :
-    * Implémentation du CRUD complet pour les secrétaires.
-    * Hashage sécurisé des mots de passe et gestion des rôles (Admin vs Secrétaire).
-    * Système de "Toggle" pour activer/désactiver les accès en un clic.
-* **`RendezVousController.php` (Sécurisation de l'Agenda)** :
-    * Intégration de la logique de "Data Scoping" : les secrétaires ne reçoivent que les RDV des médecins (clients) qui leur sont spécifiquement affectés via l'AssignmentRepository.
-* **`AppelantController.php` (Protection des Données)** :
-    * Sécurisation de la suppression des patients avec un bloc "try/catch" global.
-    * Empêche la suppression si le patient possède un historique (RDV ou messages) pour éviter les crashs de contrainte d'intégrité.
-* **`DashboardController.php` & `MessageController.php`** :
-    * Filtrage des routes `/unread` et `/all` pour garantir que le tableau de bord et la messagerie respectent strictement le périmètre de chaque secrétaire.
+* **`Task.php` (Nouvelle Entité)** :
+    * Création de la table des tâches avec les champs : `title`, `isDone` (statut), `createdAt` et `owner` (relation ManyToOne vers l'utilisateur).
+    * Cloisonnement natif : chaque tâche est liée à son créateur via la propriété `owner`.
+* **`TaskController.php` (API & Sécurité)** :
+    * **Mode Supervision** : La route `GET` détecte le rôle de l'utilisateur. Un administrateur reçoit toutes les tâches du centre (avec le nom du créateur), tandis qu'une secrétaire ne voit que les siennes.
+    * **Droits Étendus** : Les fonctions `toggle` et `delete` vérifient si l'utilisateur est le propriétaire OU possède le rôle `ROLE_ADMIN` avant d'autoriser l'action.
 
 ### 📂 Architecture Frontend (React)
 
-* **`MainLayout.jsx` (Navigation Intelligente)** :
-    * Affichage conditionnel du menu "Équipe" réservé aux administrateurs.
-    * Correction de la zone de survol (hover) des icônes pour une navigation fluide.
-* **`HomePage.jsx` & `MessagesPage.jsx` (Deep Linking)** :
-    * Branchement des boutons de raccourcis du Dashboard.
-    * Navigation directe : cliquer sur un message dans le Dashboard redirige vers la messagerie et ouvre automatiquement le message sélectionné grâce à "useLocation" et "state".
-* **`ContactPage.jsx` (UX & Fiabilité)** :
-    * Correction de la collision d'IDs entre Clients et Appelants lors des suppressions.
-    * Synchronisation automatique de la liste de droite lors du changement d'onglet (Clients/Appelants) via "useEffect".
-* **Normalisation des données** :
-    * Conversion systématique des IDs en entiers ("parseInt") avant chaque envoi "POST" ou "PUT" pour garantir la compatibilité avec le moteur Doctrine du Backend.
+* **`TasksPage.jsx` (Kanban Interactif)** :
+    * Interface organisée en deux colonnes : "À faire" et "Terminées".
+    * Barre de création rapide en haut de page pour une saisie fluide.
+    * Système de "Highlight" : gestion de la réception d'IDs via le Dashboard pour une navigation ciblée.
+* **`HomePage.jsx` (Widget Dynamique)** :
+    * Remplacement des données fictives par un appel API réel vers `/api/tasks`.
+    * Filtrage automatique pour n'afficher que les tâches actives (`isDone: false`).
+    * **Téléportation Instantanée** : Les tâches du dashboard sont cliquables et redirigent vers la page dédiée avec une sélection automatique du message/tâche cible.
+* **`MessagesPage.jsx` (Optimisation UX)** :
+    * Standardisation de la navigation : alignement de la logique de sélection sur celle des tâches.
+    * Suppression des animations lourdes au profit d'une "téléportation" instantanée pour garantir la fluidité de l'interface.
 
 ## 🧪 3. PROTOCOLE DE VALIDATION (TESTS MÉTIER)
 
-### Test A : Isolation des données (Cloisonnement)
-1. Créer deux secrétaires avec des médecins différents.
-2. Vérifier que l'agenda et la messagerie de l'une ne contiennent AUCUNE donnée de l'autre.
-    * **Résultat attendu** : Étanchéité totale confirmée par le serveur (403 ou tableau vide).
+### Test A : Supervision Admin
+1. Se connecter en tant qu'Admin.
+2. Créer une tâche sous le compte Admin.
+3. Vérifier que les tâches créées par les secrétaires sont visibles et portent la mention "Par [Nom de la secrétaire]".
+    * **Résultat attendu** : Vue globale confirmée.
 
-### Test B : Flux de travail Dashboard -> Message
-1. Sur la Home, cliquer sur un message spécifique dans le widget.
-    * **Résultat attendu** : La page /messages s'ouvre et le panneau de détail affiche immédiatement le contenu du message cliqué.
+### Test B : Confidentialité Secrétaire
+1. Se connecter en tant que Secrétaire A.
+2. Vérifier que les tâches de la Secrétaire B et de l'Admin sont invisibles.
+    * **Résultat attendu** : Cloisonnement strict confirmé.
 
-### Test C : Sécurité de Suppression
-1. Tenter de supprimer un patient lié à un rendez-vous dans l'agenda.
-    * **Résultat attendu** : Une alerte propre indique que la suppression est impossible car le dossier contient un historique.
+### Test C : Flux Dashboard -> Tâche
+1. Sur le Tableau de Bord, cliquer sur une tâche spécifique.
+    * **Résultat attendu** : Redirection vers `/tasks` et sélection immédiate de la tâche concernée.
 
-## ⚙️ 4. INSTALLATION
+---
+## 🚀 [Version 1.1] - Dossier Patient 360° & Finalisation MVP Messagerie
 
-" cd server "
-" composer install "
-" php bin/console doctrine:migrations:migrate "
-" cd ../client "
-" npm install "
-" npm run dev "
+### ✨ Nouvelles Fonctionnalités
+* **Dossier Patient 360° (`PatientDetailsPage`)** : 
+  * Création d'une vue centralisée par patient.
+  * Timeline chronologique fusionnant l'historique des Rendez-vous et des Messages liés au patient.
+  * **Module Message Express** : Intégration d'un module d'envoi rapide de messages (consignes) au médecin directement depuis la fiche du patient, avec rafraîchissement automatique de la timeline.
+* **Annuaire Connecté** : 
+  * Ajout d'un bouton d'accès direct au "Dossier 360°" depuis la carte d'un appelant dans l'Annuaire.
 
-## ⚠️ 5. RÈGLES D'OR DU PROJET
+### 🛠️ Améliorations Backend (Symfony)
+* **API Sécurisée (`MeAssignmentController`)** : Enrichissement des données transmises à la secrétaire (ajout de l'email, adresse et date de naissance des médecins affectés) tout en maintenant le cloisonnement strict.
+* **Messagerie Intelligente (`MessageController`)** :
+  * **Auto-Routage** : Le backend identifie automatiquement le médecin traitant du patient et assigne le message au bon destinataire.
+  * **Auto-Expéditeur** : Le nom de la secrétaire connectée est automatiquement signé sur les nouveaux messages.
+  * **Typage dynamique (`senderType`)** : Le serveur fait désormais la distinction entre un message concernant un dossier médical (`patient`) et une consigne interne au secrétariat (`secretary`).
+  * **Uniformisation des Titres** : La liste des messages affiche prioritairement le Nom du Patient, sauf s'il s'agit d'une consigne interne (affichage du nom de la secrétaire).
 
-1. **Sécurité Inter-Ports** : Toujours utiliser "credentials: 'include'" dans les appels fetch pour maintenir la session entre le port 5173 (React) et 8000 (Symfony).
-2. **Gestion des IDs** : Ne jamais envoyer d'IDs sous forme de chaînes de caractères ; toujours utiliser "parseInt()" côté Front.
-3. **Fichiers Sensibles** : Les dossiers "vendor/", "node_modules/" et les fichiers ".env.local" sont strictement exclus du dépôt via les fichiers ".gitignore".
+### 🎨 UX/UI & Sécurités Front-end
+* **Protection des Données Inter-Secrétaires** : Dans l'annuaire, si une secrétaire modifie un patient rattaché à un médecin hors de son scope, le champ "Médecin traitant" est verrouillé en lecture seule pour éviter d'écraser l'affection par erreur.
+* **Panneau d'information Dynamique (Messagerie)** : 
+  * Adaptation visuelle selon la source du message (Badge "PATIENT" ou "SECRÉTAIRE").
+  * Masquage intelligent des données non pertinentes (ex: le champ "Téléphone" et le bouton "Appeler" disparaissent pour les messages internes entre secrétaires et médecins).
+  * Affichage de l'email professionnel correct en fonction du contexte.
