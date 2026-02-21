@@ -16,18 +16,14 @@ class MeAssignmentController extends AbstractController
     #[Route('', name: 'list', methods: ['GET'])]
     public function getMyAssignments(AssignmentRepository $assignmentRepository): JsonResponse
     {
-        // 1. On récupère l'utilisateur connecté
         $user = $this->getUser();
 
         if (!$user) {
             return $this->json(['error' => 'Utilisateur non connecté'], 401);
         }
 
-        // 2. On récupère les affectations
         $assignments = $assignmentRepository->findBySecretaire($user->getId());
 
-        // 3. Transformation des données pour le Front (React)
-        // On renvoie maintenant l'objet "client" complet avec le nom !
         $data = array_map(function($assignment) {
             return [
                 'assignedAt' => $assignment->getCreatedAt()->format('Y-m-d H:i:s'),
@@ -37,6 +33,9 @@ class MeAssignmentController extends AbstractController
                     'lastName' => $assignment->getClient()->getLastName(),
                     'specialty' => $assignment->getClient()->getSpecialty(),
                     'phone' => $assignment->getClient()->getPhone(),
+                    'email' => $assignment->getClient()->getEmail(),
+                    'address' => $assignment->getClient()->getAddress(),
+                    'birthDate' => $assignment->getClient()->getBirthDate() ? $assignment->getClient()->getBirthDate()->format('Y-m-d') : null,
                 ]
             ];
         }, $assignments);

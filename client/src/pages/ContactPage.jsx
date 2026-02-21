@@ -1,6 +1,8 @@
 // src/pages/ContactPage.jsx
 
 import React, { useState, useMemo, useEffect } from "react";
+import { useNavigate } from 'react-router-dom';
+
 import {
   FaSearch,
   FaUserMd,
@@ -228,6 +230,8 @@ const AppelantFormModal = ({
   const modalTitle = initialData
     ? "Modifier l'Appelant"
     : "Ajouter un Appelant";
+  const isHiddenDoctor = initialData?.linkedClient && !clientList.some(c => c.id === initialData.linkedClient);
+  
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
@@ -292,25 +296,34 @@ const AppelantFormModal = ({
               onChange={handleChange}
             />
 
-            {/* ✅ MODIF : Remplacement du datalist par un SELECT pour la fiabilité absolue */}
+            {/* ✅ MODIF : Verrouillage intelligent du médecin */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Médecin traitant <span className="text-red-500">*</span>
               </label>
-              <select
-                name="linkedClient"
-                value={formData.linkedClient || ""}
-                onChange={handleChange}
-                required
-                className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
-              >
-                <option value="">-- Sélectionner un médecin --</option>
-                {clientList.map((client) => (
-                  <option key={client.id} value={client.id}>
-                    Dr. {client.name} ({client.specialty})
-                  </option>
-                ))}
-              </select>
+              
+              {isHiddenDoctor ? (
+                // 🔒 Affichage verrouillé si le médecin est hors scope
+                <div className="w-full px-3 py-2 bg-gray-100 border border-gray-200 rounded-lg text-gray-500 text-sm font-medium cursor-not-allowed flex items-center gap-2">
+                  <FaUserMd /> Information masquée (Modification bloquée)
+                </div>
+              ) : (
+                // 🔓 Menu déroulant classique sinon
+                <select
+                  name="linkedClient"
+                  value={formData.linkedClient || ""}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
+                >
+                  <option value="">-- Sélectionner un médecin --</option>
+                  {clientList.map((client) => (
+                    <option key={client.id} value={client.id}>
+                      Dr. {client.name} ({client.specialty})
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
           </div>
           <div className="flex justify-end items-center p-4 bg-gray-50 border-t rounded-b-lg">
@@ -386,6 +399,7 @@ const FormInput = ({
 
 // --- PAGE PRINCIPALE ---
 export default function ContactPage() {
+  const navigate = useNavigate();
   const userStr = localStorage.getItem("user");
   let isAdmin = false;
   if (userStr) {
@@ -789,6 +803,7 @@ const handleDeleteContact = async (contactToDelete) => {
             value={contact.email || "Non renseigné"}
           />
           {isClient ? (
+            /* --- AFFICHAGE MÉDECIN (Rien n'est supprimé) --- */
             <>
               <InfoItem
                 icon={<FaMapMarkerAlt />}
@@ -803,15 +818,16 @@ const handleDeleteContact = async (contactToDelete) => {
               <InfoItem
                 icon={<FaBirthdayCake />}
                 label="Date de naissance"
-                value={contact.birthDate || "Non renseignée"}
+                value={contact.birthDate ? new Date(contact.birthDate).toLocaleDateString('fr-FR') : "Non renseignée"}
               />
             </>
           ) : (
+            /* --- AFFICHAGE PATIENT (Juste les textes modifiés) --- */
             <>
               <InfoItem
                 icon={<FaBirthdayCake />}
                 label="Date de naissance"
-                value={contact.birthDate}
+                value={contact.birthDate ? new Date(contact.birthDate).toLocaleDateString('fr-FR') : "Non renseignée"}
               />
               <div className="flex items-start space-x-3">
                 <div className="text-gray-400 mt-1">
@@ -833,11 +849,21 @@ const handleDeleteContact = async (contactToDelete) => {
                   ) : (
                     <p className="text-base text-gray-800">
                       {contact.linkedClient
-                        ? "Médecin inconnu"
-                        : "Non spécifié"}
+                        ? "Information masquée (Autre médecin)"
+                        : "Aucun médecin renseigné"}
                     </p>
                   )}
                 </div>
+              </div>
+
+              {/* 🟢 NOUVEAU BOUTON : Accès direct à l'historique 360° */}
+              <div className="col-span-1 md:col-span-2 pt-4 border-t border-gray-100 mt-2">
+                <button 
+                  onClick={() => navigate(`/patient/${contact.id}`)}
+                  className="w-full py-3 bg-blue-50 text-blue-700 rounded-lg font-semibold hover:bg-blue-100 transition flex items-center justify-center gap-2"
+                >
+                  Ouvrir le dossier médical complet (360°)
+                </button>
               </div>
             </>
           )}

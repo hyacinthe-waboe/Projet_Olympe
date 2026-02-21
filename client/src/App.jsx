@@ -21,6 +21,7 @@ import InternalChatPage from './pages/InternalChatPage.jsx';
 import NotificationsPage from './pages/NotificationsPage.jsx';
 import HelpPage from './pages/HelpPage.jsx';
 import TeamPage from './pages/TeamPage.jsx';
+import PatientDetailsPage from './pages/PatientDetailsPage';
 
 // --- COMPOSANT DE PROTECTION ---
 // Si pas connecté, on renvoie vers /login
@@ -71,6 +72,7 @@ export default function App() {
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/help" element={<HelpPage />} />
         <Route path="/team" element={<AdminRoute><TeamPage /></AdminRoute>} />
+        <Route path="/patient/:id" element={<PatientDetailsPage />} />
       </Route>
 
       {/* Redirection par défaut : Si l'URL n'existe pas, on renvoie vers l'accueil (qui renverra vers Login si besoin) */}

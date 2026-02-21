@@ -15,21 +15,35 @@ use Symfony\Component\Routing\Annotation\Route;
 #[Route('/api/messages')]
 class MessageController extends AbstractController
 {
-    private function serializeMessage(Message $msg): array 
+private function serializeMessage(Message $msg): array 
     {
         $appelant = $msg->getAppelant();
+        $user = $this->getUser(); // Récupère l'utilisateur qui regarde le message
+
         return [
             'id' => $msg->getId(),
-            'from' => $msg->getSenderName(),
+            // Logique de titre : Nom patient ou Nom secrétaire
+            'from' => $appelant 
+                ? ($appelant->getFirstname() . ' ' . $appelant->getLastname()) 
+                : $msg->getSenderName(),
             'snippet' => substr($msg->getContent(), 0, 60) . '...',
             'fullContent' => $msg->getContent(),
             'date' => $msg->getCreatedAt()->format('d/m H:i'),
-            'doctorName' => $msg->getClient()->getLastName(),
+            'doctorName' => $msg->getClient() ? $msg->getClient()->getLastName() : 'N/A',
             'isRead' => $msg->isRead(),
             'adminNote' => $msg->getAdminNote(),
+            
+            // 🟢 AJOUT : Identification du type pour le Front
+            'senderType' => $appelant ? 'patient' : 'secretary',
+            
+            // 🟢 AJOUT : Email dynamique (Patient ou Secrétaire)
+            'contactEmail' => $appelant 
+                ? ($appelant->getEmail() ?: "Non renseigné") 
+                : ($user ? $user->getEmail() : "secretariat@olympe.com"),
+
             'patient' => $appelant ? [
+                'id' => $appelant->getId(),
                 'phone' => $appelant->getPhone(),
-                'email' => $appelant->getEmail() ?: "Non renseigné",
                 'lastname' => $appelant->getLastname(),
                 'firstname' => $appelant->getFirstname(),
             ] : null
@@ -120,21 +134,37 @@ class MessageController extends AbstractController
         return $this->json(['status' => 'Marqué comme lu']);
     }
 
-    #[Route('', methods: ['POST'])]
+#[Route('', methods: ['POST'])]
     public function create(Request $request, EntityManagerInterface $em, ClientRepository $clientRepo, AppelantRepository $appRepo): JsonResponse {
         $data = json_decode($request->getContent(), true);
+        $user = $this->getUser(); // 🟢 Récupère la secrétaire connectée
+
         $msg = new Message();
-        $msg->setContent($data['content']);
-        $msg->setSenderName($data['senderName']);
+        $msg->setContent($data['content'] ?? '');
+        
+        // 🟢 RÉGLAGE DU NOM : On ignore "secretariat" envoyé par le front
+        // On prend le vrai nom/prénom de l'utilisateur Symfony
+        if ($user) {
+            $msg->setSenderName($user->getFirstName() . ' ' . $user->getLastName());
+        } else {
+            $msg->setSenderName('Secrétariat Olympe');
+        }
+
         $msg->setIsRead(false);
         $msg->setCreatedAt(new \DateTimeImmutable());
         
-        $client = $clientRepo->find($data['client_id']);
-        if ($client) $msg->setClient($client);
+        // 🟢 LIAISON MÉDECIN (Indispensable pour que la secrétaire le voie dans son flux)
+        // On gère les deux formats de clés possibles (clientId ou client_id)
+        $clientId = $data['clientId'] ?? $data['client_id'] ?? null;
+        if ($clientId) {
+            $client = $clientRepo->find($clientId);
+            if ($client) $msg->setClient($client);
+        }
 
-        // Optionnel : Lier à un patient si l'ID est fourni
-        if (!empty($data['appelant_id'])) {
-            $appelant = $appRepo->find($data['appelant_id']);
+        // LIAISON PATIENT (Optionnel selon ton choix dans la modale)
+        $appelantId = $data['appelantId'] ?? $data['appelant_id'] ?? null;
+        if ($appelantId) {
+            $appelant = $appRepo->find($appelantId);
             if ($appelant) $msg->setAppelant($appelant);
         }
 

@@ -9,6 +9,7 @@ import getDay from "date-fns/getDay";
 import fr from "date-fns/locale/fr";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { FaTimes, FaTrash } from "react-icons/fa"; // Ajout de FaTrash
+import { useNavigate } from "react-router-dom";
 
 // --- CONFIGURATION ---
 const locales = { fr: fr };
@@ -430,34 +431,88 @@ export default function CalendarPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalData, setModalData] = useState(null); // Les données du RDV sélectionné
   const [isEditMode, setIsEditMode] = useState(false);
+  const navigate = useNavigate();
+  // --- 1. COMPOSANT POUR LA VUE SEMAINE / JOUR ---
+  const WeekEventComponent = ({ event }) => (
+    <div className="h-full w-full flex flex-col p-1 overflow-hidden leading-tight">
+      <div className="flex flex-col mb-1">
+        <div className="font-bold text-xs truncate">{event.title}</div>
+        {/* Nom du patient cliquable avec redirection */}
+        <div 
+          onClick={(e) => {
+            e.stopPropagation(); // ⛔ Empêche d'ouvrir la modale du RDV
+            if (event.appelantId) navigate(`/patient/${event.appelantId}`);
+          }}
+          className="text-[10px] font-bold opacity-100 truncate hover:underline cursor-pointer bg-white/20 rounded px-1"
+          title="Voir la fiche patient 360°"
+        >
+          👤 {event.appelantName}
+        </div>
+      </div>
+
+      {!selectedClient && (
+        <div className="text-[10px] italic opacity-80 truncate text-left bg-white/40 px-1 rounded max-w-full">
+          👨‍⚕️ {event.clientName}
+        </div>
+      )}
+    </div>
+  );
+
+  // --- 2. COMPOSANT POUR LA VUE AGENDA (Liste tableau) ---
+  const AgendaEventComponent = ({ event }) => (
+    <div className="flex flex-row items-center justify-between w-full h-full">
+      <div className="font-bold text-sm w-1/3 truncate">{event.title}</div>
+
+      <div 
+        onClick={(e) => {
+          e.stopPropagation(); // ⛔ Empêche d'ouvrir la modale du RDV
+          if (event.appelantId) navigate(`/patient/${event.appelantId}`);
+        }}
+        className="text-sm font-bold text-blue-700 hover:underline cursor-pointer w-1/3 text-center truncate border-l border-black/10"
+        title="Voir la fiche patient 360°"
+      >
+        👤 {event.appelantName}
+      </div>
+
+      <div className="text-sm italic opacity-80 w-1/3 text-right truncate border-l border-black/10">
+        {!selectedClient ? `👨‍⚕️ ${event.clientName}` : ""}
+      </div>
+    </div>
+  );
 
   useEffect(() => {
     fetchData();
   }, [selectedClient]);
 
-const fetchData = async () => {
-        try {
-            const clientUrl = isAdmin 
-                ? 'http://127.0.0.1:8000/api/admin/clients' 
-                : 'http://127.0.0.1:8000/api/me/assignments';
+  const fetchData = async () => {
+    try {
+      const clientUrl = isAdmin
+        ? "http://127.0.0.1:8000/api/admin/clients"
+        : "http://127.0.0.1:8000/api/me/assignments";
 
-            const resCl = await fetch(clientUrl, { credentials: 'include' });
-            if(resCl.ok) {
-                const data = await resCl.json();
-                // ✅ Gestion Hydra + Aplatissement
-                const array = data['hydra:member'] || (Array.isArray(data) ? data : []);
-                setClients(array.map(item => {
-                    const c = item.client || item;
-                    return { ...c, lastName: c.lastName || c.lastname || "" };
-                }).filter(c => c && c.id));
-            }
+      const resCl = await fetch(clientUrl, { credentials: "include" });
+      if (resCl.ok) {
+        const data = await resCl.json();
+        // ✅ Gestion Hydra + Aplatissement
+        const array = data["hydra:member"] || (Array.isArray(data) ? data : []);
+        setClients(
+          array
+            .map((item) => {
+              const c = item.client || item;
+              return { ...c, lastName: c.lastName || c.lastname || "" };
+            })
+            .filter((c) => c && c.id),
+        );
+      }
 
-            const resAp = await fetch('http://127.0.0.1:8000/api/appelants', { credentials: 'include' });
-            if(resAp.ok) {
-                const data = await resAp.json();
-                const array = data['hydra:member'] || (Array.isArray(data) ? data : []);
-                setAppelants(array.filter(a => a && a.id));
-            }
+      const resAp = await fetch("http://127.0.0.1:8000/api/appelants", {
+        credentials: "include",
+      });
+      if (resAp.ok) {
+        const data = await resAp.json();
+        const array = data["hydra:member"] || (Array.isArray(data) ? data : []);
+        setAppelants(array.filter((a) => a && a.id));
+      }
 
       let url = "http://127.0.0.1:8000/api/rendezvous";
 
@@ -585,10 +640,10 @@ const fetchData = async () => {
     }
   };
 
-// --- PALETTE COULEURS DYNAMIQUE & GESTION DU PASSÉ ---
+  // --- PALETTE COULEURS DYNAMIQUE & GESTION DU PASSÉ ---
   const eventStyleGetter = (event) => {
     const colors = getColorForClient(event.clientId);
-    
+
     // 🕒 Vérification : est-ce que le rendez-vous est terminé ?
     // On compare la date de fin du RDV avec l'heure actuelle
     const isPast = new Date(event.end) < new Date();
@@ -597,16 +652,16 @@ const fetchData = async () => {
       style: {
         backgroundColor: colors.bg,
         color: colors.text,
-        borderRadius: '6px',
-        border: 'none',
+        borderRadius: "6px",
+        border: "none",
         borderLeft: `4px solid ${colors.border}`,
-        display: 'block',
-        fontSize: '0.85rem',
-        fontWeight: '500',
+        display: "block",
+        fontSize: "0.85rem",
+        fontWeight: "500",
         // ✨ L'effet visuel :
-        opacity: isPast ? 0.5 : 1,       // 50% de transparence si c'est passé
-        filter: isPast ? 'grayscale(20%)' : 'none', // Optionnel : un léger voile gris
-        cursor: 'pointer',
+        opacity: isPast ? 0.5 : 1, // 50% de transparence si c'est passé
+        filter: isPast ? "grayscale(20%)" : "none", // Optionnel : un léger voile gris
+        cursor: "pointer",
       },
     };
   };
@@ -628,44 +683,6 @@ const fetchData = async () => {
     }
     return {};
   };
-
-  // --- 1. COMPOSANT POUR LA VUE SEMAINE / JOUR (Version Overlap-Friendly) ---
-  const WeekEventComponent = ({ event }) => (
-    <div className="h-full w-full flex flex-col p-1 overflow-hidden leading-tight">
-      {/* GROUPE INFOS : Titre et Patient */}
-      <div className="flex flex-col mb-1">
-        <div className="font-bold text-xs truncate">{event.title}</div>
-        <div className="text-[10px] opacity-90 truncate">
-          {event.appelantName}
-        </div>
-      </div>
-
-      {/* MÉDECIN : Aligné à gauche pour éviter d'être caché par le RDV d'à côté */}
-      {!selectedClient && (
-        <div className="text-[10px] italic opacity-80 truncate text-left bg-white/40 px-1 rounded max-w-full">
-          👨‍⚕️ {event.clientName}
-        </div>
-      )}
-    </div>
-  );
-
-  // --- 2. COMPOSANT POUR LA VUE AGENDA (Liste tableau) ---
-  const AgendaEventComponent = ({ event }) => (
-    <div className="flex flex-row items-center justify-between w-full h-full">
-      {/* Colonne 1 : Titre */}
-      <div className="font-bold text-sm w-1/3 truncate">{event.title}</div>
-
-      {/* Colonne 2 : Patient (Centré) */}
-      <div className="text-sm opacity-90 w-1/3 text-center truncate border-l border-black/10">
-        👤 {event.appelantName}
-      </div>
-
-      {/* Colonne 3 : Médecin (Aligné à droite) */}
-      <div className="text-sm italic opacity-80 w-1/3 text-right truncate border-l border-black/10">
-        {!selectedClient ? `👨‍⚕️ ${event.clientName}` : ""}
-      </div>
-    </div>
-  );
 
   return (
     <div className="flex flex-1 overflow-hidden bg-gray-100 h-screen">

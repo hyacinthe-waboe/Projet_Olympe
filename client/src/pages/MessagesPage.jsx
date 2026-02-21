@@ -504,54 +504,53 @@ const InfoPanel = ({ selectedMsg, onSaveNote }) => {
               <h3 className="text-lg font-bold text-gray-900 truncate">
                 {selectedMsg.from}
               </h3>
-              <p className="text-xs text-gray-500 uppercase tracking-wide">
-                Patient
-              </p>
+<p className="text-xs text-gray-500 uppercase tracking-wide">
+  {selectedMsg.senderType === 'patient' ? 'Patient' : 'Secrétaire'}
+</p>
             </div>
           </div>
 
-          <div className="space-y-3 mt-4 pt-4 border-t border-gray-300/50">
-            <div className="flex items-center text-sm text-gray-700">
-              <PhoneIcon />
-              <span className="ml-3 font-medium">
-                {selectedMsg.patient?.phone || "Non renseigné"}
-              </span>
-            </div>
-            <div className="flex items-center text-sm text-gray-700">
-              <MailIcon />
-              <span className="ml-3 truncate font-medium">
-                {selectedMsg.patient?.email || "Pas d'email"}
-              </span>
-            </div>
-          </div>
+<div className="space-y-3 mt-4 pt-4 border-t border-gray-300/50">
+  {/* On n'affiche le téléphone QUE si c'est un patient */}
+  {selectedMsg.senderType === 'patient' && (
+    <div className="flex items-center text-sm text-gray-700">
+      <PhoneIcon />
+      <span className="ml-3 font-medium">
+        {selectedMsg.patient?.phone || "Non renseigné"}
+      </span>
+    </div>
+  )}
+
+  {/* On affiche l'email envoyé par le PHP (contactEmail) */}
+  <div className="flex items-center text-sm text-gray-700">
+    <MailIcon />
+    <span className="ml-3 truncate font-medium">
+      {selectedMsg.contactEmail || "Pas d'email"}
+    </span>
+  </div>
+</div>
         </div>
 
-        {/* 3. Actions Rapides */}
-        <div className="mb-6">
-          <h3 className="text-sm font-bold text-gray-900 mb-3 border-b border-gray-200 pb-2">
-            Actions rapides
-          </h3>
-          <div className="flex gap-2">
-            <button
-              className="flex-1 flex items-center justify-center gap-2 p-3 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-700 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition shadow-sm"
-              onClick={() =>
-                alert(
-                  `Appel vers ${selectedMsg.patient?.phone || selectedMsg.from}...`,
-                )
-              }
-            >
-              <PhoneIcon /> Appeler
-            </button>
-            <button
-              className="flex-1 flex items-center justify-center gap-2 p-3 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-700 hover:bg-green-50 hover:border-green-200 hover:text-green-600 transition shadow-sm"
-              onClick={() =>
-                (window.location.href = `/calendar?patient=${selectedMsg.from}`)
-              }
-            >
-              <CalendarIcon /> RDV
-            </button>
+{/* 3. Actions Rapides (Uniquement pour les patients) */}
+        {selectedMsg.senderType === 'patient' && (
+          <div className="mb-6">
+            <h3 className="text-sm font-bold text-gray-900 mb-3 border-b border-gray-200 pb-2">
+              Actions rapides
+            </h3>
+            <div className="flex">
+              <button
+                className="w-full flex items-center justify-center gap-2 p-3 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-700 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition shadow-sm"
+                onClick={() =>
+                  alert(
+                    `Appel vers ${selectedMsg.patient?.phone || selectedMsg.from}...`,
+                  )
+                }
+              >
+                <PhoneIcon /> Appeler le patient
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* 4. Notes Administratives (Éditables) */}
         <div className="mb-6">
