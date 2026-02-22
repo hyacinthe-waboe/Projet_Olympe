@@ -58,3 +58,66 @@ Ce module vient clôturer le développement du pôle de Télésecrétariat en le
 ### Test D : Logique de Messagerie Sortante
 1. Créer un "Nouveau message" pour un médecin depuis la modale de la Messagerie.
     * **Résultat attendu** : Le message est bien envoyé, mais l'onglet "Nouveaux" reste à 0. Le message est visible uniquement dans l'onglet "Tous".
+  
+---
+
+## 🔄 4. Procédure Git : Basculer sur l'Étape 8 et forcer la synchronisation
+
+Voici la marche à suivre infaillible pour passer de `main` à ta branche finale, récupérer le code proprement, et régler le problème des fichiers "fantômes".
+
+### 📍 1. Vérifier son emplacement
+Toujours commencer par vérifier où l'on se trouve pour éviter les erreurs.
+
+```bash 
+git status
+```
+
+### 📡 2. Rafraîchir l'historique distant
+On demande à Git de télécharger la liste des dernières branches disponibles sur GitHub (sans toucher à tes fichiers locaux).
+
+```bash
+git fetch origin
+```
+
+### 🔀 3. Basculer sur la bonne branche
+On quitte `main` pour aller physiquement sur la branche de l'étape 8.
+
+```bash
+ git switch feat/etape8-standard-appels 
+*(Note : si tu as une vieille version de Git, utilise `git checkout feat/etape8-standard-appels`)*
+```
+### 📥 4. Récupérer le code (Pull classique)
+On télécharge les fichiers de la branche.
+
+```bash
+ git pull origin feat/etape8-standard-appels 
+```
+### 🚨 CAS D'URGENCE : Fichiers manquants (Hard Reset)
+Si, après l'étape 4, ton dossier `server` est à moitié vide (pas de `composer.json`, pas de `.env`, etc.), c'est que ton Git local est désynchronisé (souvent à cause d'un sous-module fantôme). 
+
+Voici la technique du bulldozer pour écraser ta version locale et la forcer à devenir le clone absolu et parfait de GitHub :
+
+```bash
+git fetch origin 
+git reset --hard origin/feat/etape8-standard-appels 
+```
+*(Après ça, tes fichiers apparaîtront instantanément !)*
+
+
+### 📦 5. Reconstruire le projet (Routine Post-Pull)
+Git ne téléchargeant pas les lourdes librairies, il faut toujours dire à ton ordinateur de les réinstaller après un pull ou un reset réussi.
+
+**A. Pour le Backend (Symfony) :**
+```bash
+cd server
+composer install 
+docker compose up -d
+php -S 127.0.0.1:8000 -t public
+```
+
+**B. Pour le Frontend (React) :**
+```bash
+cd ../client
+npm install 
+npm run dev
+```
