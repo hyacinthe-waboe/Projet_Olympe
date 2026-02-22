@@ -4,25 +4,17 @@ import React, { useState, useEffect } from 'react';
 import { FaTasks, FaCalendarAlt, FaCommentDots, FaPhoneAlt } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 
-// ----- Données fictives (Pour la partie téléphone non connectée) -----
-const initialMissedCalls = [
-    { id: 1, from: "01 23 45 67 89", time: "5 min" },
-];
-// -----------------------------
-
 const HomePage = () => {
   const navigate = useNavigate();
 
   // --- ÉTATS CONNECTÉS AU BACKEND ---
-  const [tasks, setTasks] = useState([]); // 🟢 Nouvel état vide par défaut
+  const [tasks, setTasks] = useState([]); 
   const [appointments, setAppointments] = useState([]);
   const [messages, setMessages] = useState([]); 
+  const [missedCalls, setMissedCalls] = useState([]); // 🟢 Nouvel état vide pour les appels
   const [isLoading, setIsLoading] = useState(true);
 
-  // État statique
-  const [missedCalls] = useState(initialMissedCalls);
-
-  // --- CHARGEMENT DES DONNÉES (RDV + MESSAGES + TÂCHES) ---
+  // --- CHARGEMENT DES DONNÉES (RDV + MESSAGES + TÂCHES + APPELS) ---
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
@@ -40,13 +32,21 @@ const HomePage = () => {
             setMessages(dataMsg.messages);
         }
 
-        // 3. 🟢 NOUVEAU : Récupération des Tâches
+        // 3. Récupération des Tâches
         const resTasks = await fetch('http://127.0.0.1:8000/api/tasks', { credentials: 'include' });
         if (resTasks.ok) {
             const dataTasks = await resTasks.json();
-            // On filtre pour ne garder QUE celles qui ne sont pas terminées
             const activeTasks = dataTasks.filter(t => !t.isDone);
             setTasks(activeTasks);
+        }
+
+        // 4. 🟢 NOUVEAU : Récupération des Appels
+        const resCalls = await fetch('http://127.0.0.1:8000/api/calls', { credentials: 'include' });
+        if (resCalls.ok) {
+            const dataCalls = await resCalls.json();
+            // On filtre pour ne garder QUE les appels manqués
+            const missed = dataCalls.filter(call => call.status === 'missed');
+            setMissedCalls(missed);
         }
 
       } catch (error) {
@@ -66,7 +66,7 @@ const HomePage = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
 
-        {/* --- Widget Tâches (CONNECTÉ AU BACKEND 🟢) --- */}
+        {/* --- Widget Tâches --- */}
         <div className="bg-white p-5 rounded-lg shadow-sm flex flex-col">
           <h2 className="text-xl font-semibold text-gray-700 mb-4 flex items-center">
             <FaTasks className="mr-3 text-blue-500" />
@@ -78,7 +78,6 @@ const HomePage = () => {
                 <p className="text-gray-400 italic">Chargement...</p>
               ) : (
                 <ul className="space-y-3">
-                  {/* On n'affiche que les 3 premières tâches avec .slice(0, 3) */}
                   {tasks.slice(0, 3).map(task => (
                     <li 
                       key={task.id} 
@@ -104,7 +103,7 @@ const HomePage = () => {
           </button>
         </div>
 
-        {/* --- Widget Rendez-vous (CONNECTÉ AU BACKEND 🟢) --- */}
+        {/* --- Widget Rendez-vous --- */}
         <div className="bg-white p-5 rounded-lg shadow-sm flex flex-col">
           <h2 className="text-xl font-semibold text-gray-700 mb-4 flex items-center">
             <FaCalendarAlt className="mr-3 text-green-500" />
@@ -136,54 +135,74 @@ const HomePage = () => {
           </button>
         </div>
 
-        {/* --- Widget Messages Récents (CONNECTÉ AU BACKEND 🟢) --- */}
+        {/* --- Widget Messages Récents --- */}
         <div className="bg-white p-5 rounded-lg shadow-sm flex flex-col">
           <h2 className="text-xl font-semibold text-gray-700 mb-4 flex items-center">
             <FaCommentDots className="mr-3 text-purple-500" />
             Messages non lus
           </h2>
           <div className="flex-1">
-              <ul className="space-y-3">
-                {messages.map(msg => (
-                  <li key={msg.id} className="p-3 bg-gray-50 rounded-md border border-gray-200 truncate cursor-pointer hover:bg-gray-100 transition" onClick={() => navigate('/messages', { state: { openMessageId: msg.id } })}>
-                    <div className="flex justify-between items-center mb-1">
-                        <span className="font-medium text-gray-900">{msg.from}</span>
-                        <span className="text-xs text-gray-400">{msg.date}</span>
-                    </div>
-                    <p className="text-xs text-blue-600 font-semibold mb-1">Pour: Dr. {msg.doctorName}</p>
-                    <p className="text-sm text-gray-600 truncate">{msg.snippet}</p>
-                  </li>
-                ))}
-                
-                {!isLoading && messages.length === 0 && (
-                    <p className="text-gray-500 italic py-2">Aucun nouveau message.</p>
-                )}
-              </ul>
+              {isLoading ? (
+                <p className="text-gray-400 italic">Chargement...</p>
+              ) : (
+                  <ul className="space-y-3">
+                    {messages.map(msg => (
+                      <li key={msg.id} className="p-3 bg-gray-50 rounded-md border border-gray-200 truncate cursor-pointer hover:bg-gray-100 transition" onClick={() => navigate('/messages', { state: { openMessageId: msg.id } })}>
+                        <div className="flex justify-between items-center mb-1">
+                            <span className="font-medium text-gray-900">{msg.from}</span>
+                            <span className="text-xs text-gray-400">{msg.date}</span>
+                        </div>
+                        <p className="text-xs text-blue-600 font-semibold mb-1">Pour: Dr. {msg.doctorName}</p>
+                        <p className="text-sm text-gray-600 truncate">{msg.snippet}</p>
+                      </li>
+                    ))}
+                    
+                    {!isLoading && messages.length === 0 && (
+                        <p className="text-gray-500 italic py-2">Aucun nouveau message.</p>
+                    )}
+                  </ul>
+              )}
           </div>
           <button onClick={() => navigate('/messages')} className="mt-4 text-sm font-medium text-blue-600 hover:underline text-left">
             Ouvrir la messagerie &rarr;
           </button>
         </div>
 
-        {/* --- Widget Appels Manqués (Statique pour l'instant) --- */}
+        {/* --- Widget Appels Manqués (CONNECTÉ AU BACKEND 🟢) --- */}
         <div className="bg-white p-5 rounded-lg shadow-sm md:col-span-1 flex flex-col">
           <h2 className="text-xl font-semibold text-gray-700 mb-4 flex items-center">
             <FaPhoneAlt className="mr-3 text-red-500" />
             Appels manqués
           </h2>
           <div className="flex-1">
-               <ul className="space-y-3">
-                {missedCalls.map(call => (
-                  <li key={call.id} className="p-3 bg-red-50 rounded-md border border-red-200">
-                    <p className="font-medium text-gray-900">{call.from}</p>
-                    <span className="text-sm text-gray-500">Il y a {call.time}</span>
-                  </li>
-                ))}
-                 {missedCalls.length === 0 && <p className="text-gray-500 italic">Aucun appel manqué.</p>}
-              </ul>
+              {isLoading ? (
+                <p className="text-gray-400 italic">Chargement...</p>
+              ) : (
+                  <ul className="space-y-3">
+                    {missedCalls.slice(0, 3).map(call => (
+                      <li 
+                        key={call.id} 
+                        onClick={() => navigate('/phone')}
+                        className="p-3 bg-red-50 rounded-md border border-red-200 cursor-pointer hover:bg-red-100 transition shadow-sm"
+                      >
+                        <div className="flex justify-between items-start mb-1">
+                            <p className="font-bold text-gray-900 truncate pr-2">{call.contactName || "Inconnu"}</p>
+                            <span className="text-xs text-gray-500 whitespace-nowrap">
+                                {new Date(call.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                        </div>
+                        <p className="text-sm font-medium text-red-600">{call.phoneNumber}</p>
+                      </li>
+                    ))}
+                    
+                    {!isLoading && missedCalls.length === 0 && (
+                        <p className="text-gray-500 italic py-2">Aucun appel manqué. Le standard est à jour ! 📞</p>
+                    )}
+                  </ul>
+              )}
           </div>
           <button onClick={() => navigate('/phone')} className="mt-4 text-sm font-medium text-blue-600 hover:underline text-left">
-            Voir l'historique &rarr;
+            Voir l'historique ({missedCalls.length}) &rarr;
           </button>
         </div>
 

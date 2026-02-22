@@ -1,8 +1,8 @@
 // src/pages/MessagesPage.jsx
 
 import React, { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
-
+import { useLocation, useNavigate } from "react-router-dom";
+import { useCall } from "../context/CallContext";
 
 // --- Icônes ---
 const CalendarIcon = () => (
@@ -504,53 +504,34 @@ const InfoPanel = ({ selectedMsg, onSaveNote }) => {
               <h3 className="text-lg font-bold text-gray-900 truncate">
                 {selectedMsg.from}
               </h3>
-<p className="text-xs text-gray-500 uppercase tracking-wide">
-  {selectedMsg.senderType === 'patient' ? 'Patient' : 'Secrétaire'}
-</p>
+              <p className="text-xs text-gray-500 uppercase tracking-wide">
+                {selectedMsg.senderType === "patient"
+                  ? "Patient"
+                  : "Secrétaire"}
+              </p>
             </div>
           </div>
 
-<div className="space-y-3 mt-4 pt-4 border-t border-gray-300/50">
-  {/* On n'affiche le téléphone QUE si c'est un patient */}
-  {selectedMsg.senderType === 'patient' && (
-    <div className="flex items-center text-sm text-gray-700">
-      <PhoneIcon />
-      <span className="ml-3 font-medium">
-        {selectedMsg.patient?.phone || "Non renseigné"}
-      </span>
-    </div>
-  )}
+          <div className="space-y-3 mt-4 pt-4 border-t border-gray-300/50">
+            {/* On n'affiche le téléphone QUE si c'est un patient */}
+            {selectedMsg.senderType === "patient" && (
+              <div className="flex items-center text-sm text-gray-700">
+                <PhoneIcon />
+                <span className="ml-3 font-medium">
+                  {selectedMsg.patient?.phone || "Non renseigné"}
+                </span>
+              </div>
+            )}
 
-  {/* On affiche l'email envoyé par le PHP (contactEmail) */}
-  <div className="flex items-center text-sm text-gray-700">
-    <MailIcon />
-    <span className="ml-3 truncate font-medium">
-      {selectedMsg.contactEmail || "Pas d'email"}
-    </span>
-  </div>
-</div>
+            {/* On affiche l'email envoyé par le PHP (contactEmail) */}
+            <div className="flex items-center text-sm text-gray-700">
+              <MailIcon />
+              <span className="ml-3 truncate font-medium">
+                {selectedMsg.contactEmail || "Pas d'email"}
+              </span>
+            </div>
+          </div>
         </div>
-
-{/* 3. Actions Rapides (Uniquement pour les patients) */}
-        {selectedMsg.senderType === 'patient' && (
-          <div className="mb-6">
-            <h3 className="text-sm font-bold text-gray-900 mb-3 border-b border-gray-200 pb-2">
-              Actions rapides
-            </h3>
-            <div className="flex">
-              <button
-                className="w-full flex items-center justify-center gap-2 p-3 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-700 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition shadow-sm"
-                onClick={() =>
-                  alert(
-                    `Appel vers ${selectedMsg.patient?.phone || selectedMsg.from}...`,
-                  )
-                }
-              >
-                <PhoneIcon /> Appeler le patient
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* 4. Notes Administratives (Éditables) */}
         <div className="mb-6">
@@ -618,52 +599,66 @@ export default function MessagesPage() {
     content: "",
     senderName: "Secrétariat",
   });
-  const [selectedToDelete, setSelectedToDelete] = useState([]); 
+  const [selectedToDelete, setSelectedToDelete] = useState([]);
+  const navigate = useNavigate();
+  const { startOutgoingCall } = useCall();
 
-// 1. Chargement initial des données
+  // 1. Chargement initial des données
   useEffect(() => {
     fetchMessages();
     fetchInitialData();
   }, []);
 
-// 🚀 LOGIQUE DE TÉLÉPORTATION UNIQUE
-useEffect(() => {
-  const targetId = location.state?.openMessageId;
-  
-  if (targetId && messages.length > 0) {
-    const msgToOpen = messages.find(m => m.id === targetId);
-    
-    if (msgToOpen) {
-      // 1. On force l'onglet sur "Tous" pour que le message soit visible
-      setActiveTab("Tous");
-      // 2. On sélectionne le message immédiatement
-      setSelectedMsg(msgToOpen);
-      // 3. On nettoie l'état de navigation
-      window.history.replaceState({}, document.title);
+  // 🚀 LOGIQUE DE TÉLÉPORTATION UNIQUE
+  useEffect(() => {
+    const targetId = location.state?.openMessageId;
+
+    if (targetId && messages.length > 0) {
+      const msgToOpen = messages.find((m) => m.id === targetId);
+
+      if (msgToOpen) {
+        // 1. On force l'onglet sur "Tous" pour que le message soit visible
+        setActiveTab("Tous");
+        // 2. On sélectionne le message immédiatement
+        setSelectedMsg(msgToOpen);
+        // 3. On nettoie l'état de navigation
+        window.history.replaceState({}, document.title);
+      }
     }
-  }
-}, [location.state, messages]); // On surveille l'arrivée des messages
-  
+  }, [location.state, messages]); // On surveille l'arrivée des messages
 
-// 🔄 Sélection automatique intelligente
-useEffect(() => {
-  // On ne lance l'auto-sélection QUE s'il n'y a pas de demande de téléportation en cours
-  if (location.state?.openMessageId) return;
+  // 🔄 Sélection automatique intelligente
+  useEffect(() => {
+    // On ne lance l'auto-sélection QUE s'il n'y a pas de demande de téléportation en cours
+    if (location.state?.openMessageId) return;
 
-  const filtered = messages.filter((msg) => {
-    const tabMatch = activeTab === "Nouveaux" ? !msg.isRead : true;
-    const searchMatch =
-      msg.from.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      msg.doctorName.toLowerCase().includes(searchQuery.toLowerCase());
-    return tabMatch && searchMatch;
-  });
+    const filtered = messages.filter((msg) => {
+      const tabMatch = activeTab === "Nouveaux" ? !msg.isRead : true;
+      const searchMatch =
+        msg.from.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        msg.doctorName.toLowerCase().includes(searchQuery.toLowerCase());
+      return tabMatch && searchMatch;
+    });
 
-  const isStillVisible = selectedMsg && filtered.some((m) => m.id === selectedMsg.id);
+    const isStillVisible =
+      selectedMsg && filtered.some((m) => m.id === selectedMsg.id);
 
-  if (!isStillVisible && filtered.length > 0) {
-    setSelectedMsg(filtered[0]);
-  }
-}, [activeTab, messages, searchQuery, location.state]);
+    if (!isStillVisible && filtered.length > 0) {
+      setSelectedMsg(filtered[0]);
+    }
+  }, [activeTab, messages, searchQuery, location.state]);
+
+  // 🟢 LA FONCTION CLICK-TO-CALL :
+  const handleCallPatient = async (phoneNumber) => {
+    if (!phoneNumber) {
+      alert("Ce patient n'a pas de numéro enregistré.");
+      return;
+    }
+    // On lance l'appel globalement
+    await startOutgoingCall(phoneNumber);
+    // On redirige la secrétaire vers le téléphone
+    navigate("/phone"); // (Assure-toi que c'est bien la route de ta page Téléphone)
+  };
 
   // 🗑️ NOUVELLE FONCTION : Gérer la suppression
   const handleDeleteMessages = async (idsToDelete) => {
@@ -773,23 +768,35 @@ useEffect(() => {
     }
   };
 
-const fetchInitialData = async () => {
+  const fetchInitialData = async () => {
     try {
-        const [resCl, resAp] = await Promise.all([
-            fetch("http://127.0.0.1:8000/api/me/assignments", { credentials: "include" }),
-            fetch("http://127.0.0.1:8000/api/appelants", { credentials: "include" })
-        ]);
-        if (resCl.ok) {
-            const data = await resCl.json();
-            const array = data['hydra:member'] || (Array.isArray(data) ? data : Object.values(data));
-            setClients(array.map(item => item.client || item).filter(c => c && c.id));
-        }
-        if (resAp.ok) {
-            const data = await resAp.json();
-            const array = data['hydra:member'] || (Array.isArray(data) ? data : Object.values(data));
-            setAppelants(array);
-        }
-    } catch (e) { console.error(e); }
+      const [resCl, resAp] = await Promise.all([
+        fetch("http://127.0.0.1:8000/api/me/assignments", {
+          credentials: "include",
+        }),
+        fetch("http://127.0.0.1:8000/api/appelants", {
+          credentials: "include",
+        }),
+      ]);
+      if (resCl.ok) {
+        const data = await resCl.json();
+        const array =
+          data["hydra:member"] ||
+          (Array.isArray(data) ? data : Object.values(data));
+        setClients(
+          array.map((item) => item.client || item).filter((c) => c && c.id),
+        );
+      }
+      if (resAp.ok) {
+        const data = await resAp.json();
+        const array =
+          data["hydra:member"] ||
+          (Array.isArray(data) ? data : Object.values(data));
+        setAppelants(array);
+      }
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const handleCreateMessage = async (e) => {
@@ -987,7 +994,7 @@ const fetchInitialData = async () => {
                     </div>
                     <button
                       className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition"
-                      onClick={() => alert(`Appel vers ${a.phone}...`)}
+                      onClick={() => handleCallPatient(a.phone)}
                     >
                       <PhoneIcon />
                     </button>

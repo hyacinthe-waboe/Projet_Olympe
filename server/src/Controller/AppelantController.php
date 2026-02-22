@@ -168,4 +168,41 @@ class AppelantController extends AbstractController
             ], 500);
         }
     }
+
+    // 🟢 NOUVELLE ROUTE : Le "Bouton Nucléaire" pour vider tout l'historique 360°
+    #[Route('/{id}/clear-history', name: 'app_appelant_clear_history', methods: ['DELETE'])]
+    public function clearFullHistory(
+        int $id, 
+        \App\Repository\AppelantRepository $appRepo, 
+        \Doctrine\ORM\EntityManagerInterface $em
+    ): JsonResponse {
+        $appelant = $appRepo->find($id);
+        
+        if (!$appelant) {
+            return $this->json(['error' => 'Patient introuvable'], 404);
+        }
+
+        // 1. On supprime tous les Messages
+        foreach ($appelant->getMessages() as $msg) {
+            $em->remove($msg);
+        }
+
+        // 2. On supprime tous les Appels (CallLog)
+        $calls = $em->getRepository(\App\Entity\CallLog::class)->findBy(['appelant' => $appelant]);
+        foreach ($calls as $call) {
+            $em->remove($call);
+        }
+
+        // 3. On supprime tous les Rendez-Vous
+        // (Si ton entité s'appelle autrement que RendezVous, adapte le nom ici !)
+        $rdvs = $em->getRepository(\App\Entity\RendezVous::class)->findBy(['appelant' => $appelant]);
+        foreach ($rdvs as $rdv) {
+            $em->remove($rdv);
+        }
+
+        // On valide la destruction de tout l'historique
+        $em->flush();
+
+        return $this->json(['message' => 'Historique complet (RDV, Messages, Appels) effacé définitivement.']);
+    }
 }

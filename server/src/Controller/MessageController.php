@@ -120,7 +120,7 @@ private function serializeMessage(Message $msg): array
     public function markAsUnread(int $id, MessageRepository $repo, EntityManagerInterface $em): JsonResponse {
         $msg = $repo->find($id);
         if (!$msg) return $this->json(['error' => 'Message introuvable'], 404);
-        $msg->setIsRead(false);
+        $msg->setIsRead(true);
         $em->flush();
         return $this->json(['status' => 'Remis en non lu']);
     }
@@ -150,7 +150,7 @@ private function serializeMessage(Message $msg): array
             $msg->setSenderName('Secrétariat Olympe');
         }
 
-        $msg->setIsRead(false);
+        $msg->setIsRead(true);
         $msg->setCreatedAt(new \DateTimeImmutable());
         
         // 🟢 LIAISON MÉDECIN (Indispensable pour que la secrétaire le voie dans son flux)
@@ -161,11 +161,27 @@ private function serializeMessage(Message $msg): array
             if ($client) $msg->setClient($client);
         }
 
-        // LIAISON PATIENT (Optionnel selon ton choix dans la modale)
+// 🟢 LIAISON PATIENT ET AUTO-ROUTAGE (Correction ArrayCollection)
         $appelantId = $data['appelantId'] ?? $data['appelant_id'] ?? null;
         if ($appelantId) {
             $appelant = $appRepo->find($appelantId);
-            if ($appelant) $msg->setAppelant($appelant);
+            if ($appelant) {
+                $msg->setAppelant($appelant);
+                
+                // ✨ RECHERCHE INTELLIGENTE ET SÉCURISÉE DU MÉDECIN :
+                if (!$msg->getClient()) {
+                    // 1. On vérifie si la méthode getClients existe sur l'Appelant
+                    if (method_exists($appelant, 'getClients')) {
+                        // 2. On récupère la collection (liste) de médecins
+                        $medecins = $appelant->getClients();
+                        
+                        // 3. S'il y a au moins 1 médecin dans la liste, on prend le premier
+                        if (count($medecins) > 0) {
+                            $msg->setClient($medecins[0]);
+                        }
+                    }
+                }
+            }
         }
 
         $em->persist($msg);

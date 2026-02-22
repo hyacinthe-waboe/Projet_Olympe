@@ -18,7 +18,7 @@ class Appelant
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['appelant:read'])]
+    #[Groups(['appelant:read', 'call:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
@@ -37,11 +37,11 @@ class Appelant
 
     // 👇 NOUVEAUX CHAMPS (Conformes à la maquette) 👇
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['appelant:read'])]
+    #[Groups(['appelant:read', 'call:read'])]
     private ?string $email = null;
 
     #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]
-    #[Groups(['appelant:read'])]
+    #[Groups(['appelant:read', 'call:read'])]
     private ?\DateTimeInterface $birthDate = null;
     // 👆 FIN NOUVEAUX CHAMPS 👆
 

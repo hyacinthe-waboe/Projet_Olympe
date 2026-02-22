@@ -4,7 +4,8 @@ import { Routes, Route, Navigate } from "react-router-dom";
 
 // --- IMPORTS ---
 import MainLayout from "./components/layout/MainLayout.jsx";
-import LoginPage from "./pages/LoginPage.jsx"; 
+import LoginPage from "./pages/LoginPage.jsx";
+import { CallProvider } from "./context/CallContext.jsx"; 
 
 // Tes pages existantes
 import HomePage from "./pages/HomePage.jsx";
@@ -22,6 +23,7 @@ import NotificationsPage from './pages/NotificationsPage.jsx';
 import HelpPage from './pages/HelpPage.jsx';
 import TeamPage from './pages/TeamPage.jsx';
 import PatientDetailsPage from './pages/PatientDetailsPage';
+
 
 // --- COMPOSANT DE PROTECTION ---
 // Si pas connecté, on renvoie vers /login
@@ -48,35 +50,37 @@ const AdminRoute = ({ children }) => {
 
 export default function App() {
   return (
-    <Routes>
-      {/* 1. La route Login est HORS du MainLayout et est publique */}
-      <Route path="/login" element={<LoginPage />} />
+    // 🟢 ON ENGLOBE TOUTE L'APP AVEC LE PROVIDER
+    <CallProvider>
+      <Routes>
+        {/* 1. La route Login est HORS du MainLayout et est publique */}
+        <Route path="/login" element={<LoginPage />} />
 
-      {/* 2. Toutes les autres routes sont protégées et utilisent le MainLayout */}
-      <Route element={
-        <ProtectedRoute>
-          <MainLayout />
-        </ProtectedRoute>
-      }>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/phone" element={<TelephonePage />} />
-        <Route path="/calendar" element={<CalendarPage />} />
-        <Route path="/emails" element={<EmailsPage />} />
-        <Route path="/messages" element={<MessagesPage />} />
-        <Route path="/tasks" element={<TasksPage />} />
-        <Route path="/users" element={<ContactPage />} />
-        <Route path="/files" element={<FilesPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
-        <Route path="/voicemail" element={<VoicemailPage />} />
-        <Route path="/internal-chat" element={<InternalChatPage />} />
-        <Route path="/notifications" element={<NotificationsPage />} />
-        <Route path="/help" element={<HelpPage />} />
-        <Route path="/team" element={<AdminRoute><TeamPage /></AdminRoute>} />
-        <Route path="/patient/:id" element={<PatientDetailsPage />} />
-      </Route>
+        {/* 2. Toutes les autres routes sont protégées et utilisent le MainLayout */}
+        <Route element={
+          <ProtectedRoute>
+            <MainLayout />
+          </ProtectedRoute>
+        }>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/phone" element={<TelephonePage />} />
+          <Route path="/calendar" element={<CalendarPage />} />
+          <Route path="/emails" element={<EmailsPage />} />
+          <Route path="/messages" element={<MessagesPage />} />
+          <Route path="/tasks" element={<TasksPage />} />
+          <Route path="/users" element={<ContactPage />} />
+          <Route path="/files" element={<FilesPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/voicemail" element={<VoicemailPage />} />
+          <Route path="/internal-chat" element={<InternalChatPage />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/help" element={<HelpPage />} />
+          <Route path="/team" element={<AdminRoute><TeamPage /></AdminRoute>} />
+          <Route path="/patient/:id" element={<PatientDetailsPage />} />
+        </Route>
 
-      {/* Redirection par défaut : Si l'URL n'existe pas, on renvoie vers l'accueil (qui renverra vers Login si besoin) */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </CallProvider>
   );
 }

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { FaSignOutAlt } from 'react-icons/fa';
 import logo from '../../assets/logo.png';
+import { useCall } from '../../context/CallContext.jsx';
 
 // --- TOUTES LES ICÔNES (Je garde les tiennes intactes) ---
 const HomeIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>);
@@ -72,7 +73,7 @@ const Sidebar = () => {
 // --- Composant: Header ---
 const Header = () => {
     const navigate = useNavigate();
-
+    const { activeCall } = useCall();
     // 1. On crée un état pour stocker les infos de l'utilisateur
     const [user, setUser] = useState({ firstName: 'Chargement...', lastName: '' });
 
@@ -122,16 +123,41 @@ const Header = () => {
         }
     };
 
-    return (
+return (
         <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
-            <div className="flex items-center space-x-2 text-gray-600">
-                <div className="p-2 bg-green-100 text-green-700 rounded-full"><PhoneIcon /></div>
-                <div>
-                    <p className="font-semibold">Appel en cours de <span className="text-black">07 66 55 44 33</span></p>
-                    <p className="text-sm">M. DURAND</p>
-                </div>
+            
+            {/* 🟢 BANDEAU D'APPEL DYNAMIQUE (DESIGN ORIGINAL RESTAURÉ) */}
+            {/* On remplace w-72 par max-w-[350px] pour donner plus d'espace */}
+            <div className="flex items-center space-x-2 max-w-[350px]">
+                {activeCall ? (
+                    <div 
+                        className="flex items-center space-x-2 text-gray-600 cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition overflow-hidden w-full"
+                        onClick={() => navigate('/phone')}
+                        title="Retourner à l'appel"
+                    >
+                        {/* flex-shrink-0 empêche l'icône de s'écraser */}
+                        <div className="p-2 bg-green-100 text-green-700 rounded-full animate-pulse flex-shrink-0">
+                            <PhoneIcon />
+                        </div>
+                        <div className="overflow-hidden">
+                            {/* truncate empêche le retour à la ligne et met "..." si c'est trop long */}
+                            <p className="font-semibold text-sm truncate">
+                                Appel en cours de <span className="text-black">
+                                    {activeCall.isKnown ? activeCall.name : "Inconnu"}
+                                </span>
+                            </p>
+                            <p className="text-xs text-gray-500">{activeCall.number}</p>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="flex items-center space-x-2 text-gray-400 select-none">
+                        <div className="p-2 bg-gray-50 text-gray-300 rounded-full">
+                            <PhoneIcon />
+                        </div>
+                        <span className="text-sm font-medium">Ligne disponible</span>
+                    </div>
+                )}
             </div>
-
             <div className="flex items-center space-x-4">
                 <div className="text-xs p-2 bg-gray-100 rounded-lg">Le client M. MARTIN a choisi d'enregistrer tous les appels</div>
 
