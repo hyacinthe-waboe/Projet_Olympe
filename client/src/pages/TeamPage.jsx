@@ -1,3 +1,5 @@
+// src/pages/TeamPage.jsx
+
 import React, { useState, useEffect } from "react";
 import {
   FaSearch,
@@ -7,6 +9,7 @@ import {
   FaCheckCircle,
   FaTimesCircle,
 } from "react-icons/fa";
+import { API_URL } from '../config/api'; // <--- AJOUT DE L'IMPORT ICI
 
 // --- MODALE : AJOUTER UNE SECRÉTAIRE ---
 const SecretaryFormModal = ({ isOpen, onClose, onSubmit }) => {
@@ -228,7 +231,8 @@ export default function TeamPage() {
 
   const handleCreateSecretary = async (formData) => {
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/admin/users", {
+      // 👇 REMPLACEMENT PAR ${API_URL} 👇
+      const response = await fetch(`${API_URL}/api/admin/users`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -261,9 +265,10 @@ export default function TeamPage() {
   }, []);
 
   const fetchUsers = async () => {
-    
+
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/admin/users", {
+      // 👇 REMPLACEMENT PAR ${API_URL} 👇
+      const response = await fetch(`${API_URL}/api/admin/users`, {
         credentials: "include",
       });
       if (response.ok) {
@@ -282,73 +287,78 @@ export default function TeamPage() {
     } finally {
       setLoading(false);
     }
-    };
+  };
 
-    const fetchAllClients = async () => {
+  const fetchAllClients = async () => {
     try {
-        const res = await fetch("http://127.0.0.1:8000/api/admin/clients", { credentials: "include" });
-        if (res.ok) {
-            const data = await res.json();
-            setAllClients(data.map(c => ({ id: c.id, name: `${c.firstName} ${c.lastName}`, specialty: c.specialty })));
-        }
+      // 👇 REMPLACEMENT PAR ${API_URL} 👇
+      const res = await fetch(`${API_URL}/api/admin/clients`, { credentials: "include" });
+      if (res.ok) {
+        const data = await res.json();
+        setAllClients(data.map(c => ({ id: c.id, name: `${c.firstName} ${c.lastName}`, specialty: c.specialty })));
+      }
     } catch (e) { console.error("Erreur clients", e); }
-};
+  };
 
-// ✅ AJOUT INDISPENSABLE : Récupère les affectations réelles depuis la BDD
-const fetchUserAssignments = async (secretaireId) => {
+  // ✅ AJOUT INDISPENSABLE : Récupère les affectations réelles depuis la BDD
+  const fetchUserAssignments = async (secretaireId) => {
     try {
-        const res = await fetch(`http://127.0.0.1:8000/api/admin/assignments/secretaire/${secretaireId}`, { 
-            credentials: "include" 
-        });
-        if (res.ok) {
-            const data = await res.json();
-            // Déballage du format Hydra de Symfony si nécessaire
-            const array = data['hydra:member'] || (Array.isArray(data) ? data : Object.values(data));
-            setUserAssignments(array);
-        }
-    } catch (e) { 
-        console.error("Erreur chargement affectations :", e); 
+      // 👇 REMPLACEMENT PAR ${API_URL} 👇
+      const res = await fetch(`${API_URL}/api/admin/assignments/secretaire/${secretaireId}`, {
+        credentials: "include"
+      });
+      if (res.ok) {
+        const data = await res.json();
+        // Déballage du format Hydra de Symfony si nécessaire
+        const array = data['hydra:member'] || (Array.isArray(data) ? data : Object.values(data));
+        setUserAssignments(array);
+      }
+    } catch (e) {
+      console.error("Erreur chargement affectations :", e);
     }
-};
+  };
 
-const handleToggleAssignment = async (clientId, assignmentId) => {
+  const handleToggleAssignment = async (clientId, assignmentId) => {
     // 🔍 Fonction helper pour extraire l'ID si c'est un texte (ex: "/api/users/8")
     const cleanId = (id) => {
-        if (typeof id === 'string' && id.includes('/')) {
-            return parseInt(id.split('/').pop());
-        }
-        return parseInt(id);
+      if (typeof id === 'string' && id.includes('/')) {
+        return parseInt(id.split('/').pop());
+      }
+      return parseInt(id);
     };
 
     try {
-        if (assignmentId) {
-            await fetch(`http://127.0.0.1:8000/api/admin/assignments/${cleanId(assignmentId)}`, { 
-                method: 'DELETE', 
-                credentials: 'include' 
-            });
-        } else {
-            await fetch(`http://127.0.0.1:8000/api/admin/assignments`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                // ✅ On utilise cleanId pour envoyer des chiffres à 100%
-                body: JSON.stringify({ 
-                    secretaireId: cleanId(selectedUser.id), 
-                    clientId: cleanId(clientId) 
-                }),
-                credentials: 'include'
-            });
-        }
-        fetchUserAssignments(selectedUser.id);
+      if (assignmentId) {
+        // 👇 REMPLACEMENT PAR ${API_URL} 👇
+        await fetch(`${API_URL}/api/admin/assignments/${cleanId(assignmentId)}`, {
+          method: 'DELETE',
+          credentials: 'include'
+        });
+      } else {
+        // 👇 REMPLACEMENT PAR ${API_URL} 👇
+        await fetch(`${API_URL}/api/admin/assignments`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          // ✅ On utilise cleanId pour envoyer des chiffres à 100%
+          body: JSON.stringify({
+            secretaireId: cleanId(selectedUser.id),
+            clientId: cleanId(clientId)
+          }),
+          credentials: 'include'
+        });
+      }
+      fetchUserAssignments(selectedUser.id);
     } catch (error) {
-        console.error("Erreur affectation:", error);
+      console.error("Erreur affectation:", error);
     }
-};
+  };
 
   // --- ACTION : TOGGLE STATUT ---
   const toggleUserStatus = async (id) => {
     try {
+      // 👇 REMPLACEMENT PAR ${API_URL} 👇
       const response = await fetch(
-        `http://127.0.0.1:8000/api/admin/users/${id}/toggle`,
+        `${API_URL}/api/admin/users/${id}/toggle`,
         {
           method: "PATCH",
           credentials: "include",
@@ -431,16 +441,16 @@ const handleToggleAssignment = async (clientId, assignmentId) => {
               <p className="text-sm font-medium text-gray-500">
                 Médecins affectés
               </p>
-              <p 
-    onClick={() => {
-        fetchAllClients();
-        fetchUserAssignments(selectedUser.id);
-        setIsAssignModalOpen(true);
-    }}
-    className="text-base text-blue-600 font-medium cursor-pointer hover:underline flex items-center gap-1"
->
-    Gérer les affectations ➔
-</p>
+              <p
+                onClick={() => {
+                  fetchAllClients();
+                  fetchUserAssignments(selectedUser.id);
+                  setIsAssignModalOpen(true);
+                }}
+                className="text-base text-blue-600 font-medium cursor-pointer hover:underline flex items-center gap-1"
+              >
+                Gérer les affectations ➔
+              </p>
             </div>
           </div>
           <div className="flex items-start space-x-3">
@@ -532,14 +542,14 @@ const handleToggleAssignment = async (clientId, assignmentId) => {
         onClose={() => setIsAddModalOpen(false)}
         onSubmit={handleCreateSecretary}
       />
-      <AssignmentModal 
-    isOpen={isAssignModalOpen}
-    onClose={() => setIsAssignModalOpen(false)}
-    user={selectedUser}
-    allClients={allClients}
-    assignments={userAssignments}
-    onToggleAssignment={handleToggleAssignment}
-/>
+      <AssignmentModal
+        isOpen={isAssignModalOpen}
+        onClose={() => setIsAssignModalOpen(false)}
+        user={selectedUser}
+        allClients={allClients}
+        assignments={userAssignments}
+        onToggleAssignment={handleToggleAssignment}
+      />
     </div>
   );
 }

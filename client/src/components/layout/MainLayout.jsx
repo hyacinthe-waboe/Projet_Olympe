@@ -3,6 +3,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { FaSignOutAlt } from 'react-icons/fa';
 import logo from '../../assets/logo.png';
 import { useCall } from '../../context/CallContext.jsx';
+import { API_URL } from '../config/api'; // <--- AJOUT DE L'IMPORT ICI
 
 // --- TOUTES LES ICÔNES (Je garde les tiennes intactes) ---
 const HomeIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>);
@@ -57,13 +58,13 @@ const Sidebar = () => {
 
                 {/* ✅ LE BOUTON ÉQUIPE (VISIBLE UNIQUEMENT PAR L'ADMIN) */}
                 {isAdmin && (
-                        <div className="flex flex-col items-center w-full">
-                            <div className="w-8 border-t border-gray-200 mb-4 mt-2"></div>
-                            <NavLink to="/team" className={navLinkClasses} title="Gestion de l'équipe">
-                                <TeamIcon />
-                            </NavLink>
-                        </div>
-                    )}
+                    <div className="flex flex-col items-center w-full">
+                        <div className="w-8 border-t border-gray-200 mb-4 mt-2"></div>
+                        <NavLink to="/team" className={navLinkClasses} title="Gestion de l'équipe">
+                            <TeamIcon />
+                        </NavLink>
+                    </div>
+                )}
             </nav>
         </div>
     );
@@ -82,7 +83,7 @@ const Header = () => {
         const fetchProfile = async () => {
             try {
                 // 👇 C'EST ICI LA MODIFICATION MAJEURE 👇
-                const response = await fetch('http://127.0.0.1:8000/api/me', {
+                const response = await fetch(`${API_URL}/api/me`, { // <--- REMPLACEMENT PAR ${API_URL}
                     method: 'GET',
                     headers: {
                         'Accept': 'application/json',
@@ -123,14 +124,14 @@ const Header = () => {
         }
     };
 
-return (
+    return (
         <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
-            
+
             {/* 🟢 BANDEAU D'APPEL DYNAMIQUE (DESIGN ORIGINAL RESTAURÉ) */}
             {/* On remplace w-72 par max-w-[350px] pour donner plus d'espace */}
             <div className="flex items-center space-x-2 max-w-[350px]">
                 {activeCall ? (
-                    <div 
+                    <div
                         className="flex items-center space-x-2 text-gray-600 cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition overflow-hidden w-full"
                         onClick={() => navigate('/phone')}
                         title="Retourner à l'appel"

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useLocation } from 'react-router-dom';
+import { API_URL } from '../config/api'; // <--- AJOUT DE L'IMPORT ICI
 
 // --- Icônes ---
 const ShareIcon = () => (
@@ -131,7 +132,7 @@ export default function TasksPage() {
   useEffect(() => {
     // 1. On vérifie si un ID est passé dans la navigation
     const idFromDashboard = location.state?.highlightTaskId;
-    
+
     if (idFromDashboard) {
       setActiveHighlightId(idFromDashboard);
 
@@ -145,7 +146,7 @@ export default function TasksPage() {
 
       return () => clearTimeout(timer); // Nettoyage du timer si on quitte la page
     }
-  }, [location]); 
+  }, [location]);
 
   // 🔄 Chargement initial des tâches
   useEffect(() => {
@@ -154,7 +155,8 @@ export default function TasksPage() {
 
   const fetchTasks = async () => {
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/tasks", {
+      // 👇 REMPLACEMENT PAR ${API_URL} 👇
+      const res = await fetch(`${API_URL}/api/tasks`, {
         credentials: "include",
       });
       if (res.ok) setTasks(await res.json());
@@ -169,7 +171,8 @@ export default function TasksPage() {
     if (!newTaskTitle.trim()) return;
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/tasks", {
+      // 👇 REMPLACEMENT PAR ${API_URL} 👇
+      const res = await fetch(`${API_URL}/api/tasks`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: newTaskTitle }),
@@ -187,7 +190,8 @@ export default function TasksPage() {
   // ✅ Cocher / Décocher
   const handleToggleTask = async (id) => {
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/tasks/${id}/toggle`, {
+      // 👇 REMPLACEMENT PAR ${API_URL} 👇
+      const res = await fetch(`${API_URL}/api/tasks/${id}/toggle`, {
         method: "PUT",
         credentials: "include",
       });
@@ -207,7 +211,8 @@ export default function TasksPage() {
     if (!window.confirm("Voulez-vous vraiment supprimer cette tâche ?")) return;
 
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/tasks/${id}`, {
+      // 👇 REMPLACEMENT PAR ${API_URL} 👇
+      const res = await fetch(`${API_URL}/api/tasks/${id}`, {
         method: "DELETE",
         credentials: "include",
       });

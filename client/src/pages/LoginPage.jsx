@@ -1,7 +1,10 @@
+// src/pages/LoginPage.jsx
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaLock, FaUser } from 'react-icons/fa';
 import logo from '../assets/logo.png'; // Assure-toi que le chemin est bon
+import { API_URL } from '../config/api'; // <--- AJOUT DE L'IMPORT ICI
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -14,7 +17,8 @@ export default function LoginPage() {
     setError('');
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/login', {
+      // 👇 REMPLACEMENT PAR ${API_URL} 👇
+      const response = await fetch(`${API_URL}/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

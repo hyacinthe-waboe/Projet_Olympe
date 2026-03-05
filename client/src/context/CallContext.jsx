@@ -1,19 +1,19 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import { API_URL } from '../config/api'; // <--- AJOUT DE L'IMPORT ICI
 
 const CallContext = createContext();
-
 
 export const CallProvider = ({ children }) => {
     const [isRinging, setIsRinging] = useState(false);
     const [incomingCaller, setIncomingCaller] = useState(null);
     const [activeCall, setActiveCall] = useState(null);
     const [callLogs, setCallLogs] = useState([]);
-    
 
     // 🟢 1. ON CHARGE L'HISTORIQUE DEPUIS SYMFONY
     const fetchHistory = async () => {
         try {
-            const res = await fetch('http://127.0.0.1:8000/api/calls', { credentials: 'include' });
+            // 👇 REMPLACEMENT PAR ${API_URL} 👇
+            const res = await fetch(`${API_URL}/api/calls`, { credentials: 'include' });
             if (res.ok) {
                 const data = await res.json();
                 const formattedLogs = data.map(call => ({
@@ -37,10 +37,11 @@ export const CallProvider = ({ children }) => {
     const simulateCall = async () => {
         if (isRinging || activeCall) return;
         try {
-            const res = await fetch('http://127.0.0.1:8000/api/appelants', { credentials: 'include' });
+            // 👇 REMPLACEMENT PAR ${API_URL} 👇
+            const res = await fetch(`${API_URL}/api/appelants`, { credentials: 'include' });
             const data = await res.json();
             const appelants = data["hydra:member"] || (Array.isArray(data) ? data : []);
-            
+
             let callerInfo;
             if (appelants.length > 0) {
                 const randomPatient = appelants[Math.floor(Math.random() * appelants.length)];
@@ -74,14 +75,15 @@ export const CallProvider = ({ children }) => {
 
     const startOutgoingCall = async (number) => {
         if (isRinging || activeCall || !number.trim()) return null;
-        
+
         let callerInfo = {
             id: null, name: "Appel sortant", number: number, email: "Non renseigné",
             birthDate: "Non renseignée", isKnown: false, direction: 'outgoing' // 👈 On note "sortant"
         };
 
         try {
-            const res = await fetch(`http://127.0.0.1:8000/api/appelants/search?phone=${encodeURIComponent(number)}`, { credentials: 'include' });
+            // 👇 REMPLACEMENT PAR ${API_URL} 👇
+            const res = await fetch(`${API_URL}/api/appelants/search?phone=${encodeURIComponent(number)}`, { credentials: 'include' });
             if (res.ok) {
                 const data = await res.json();
                 if (data && data.id) {
@@ -94,7 +96,7 @@ export const CallProvider = ({ children }) => {
                 }
             }
         } catch (err) { console.error(err); }
-        
+
         setActiveCall(callerInfo);
         return callerInfo;
     };
@@ -102,7 +104,8 @@ export const CallProvider = ({ children }) => {
     // 🟢 2. LA POUBELLE SUPPRIME DANS LA BASE DE DONNÉES
     const deleteLog = async (logIdToRemove) => {
         try {
-            await fetch(`http://127.0.0.1:8000/api/calls/${logIdToRemove}`, {
+            // 👇 REMPLACEMENT PAR ${API_URL} 👇
+            await fetch(`${API_URL}/api/calls/${logIdToRemove}`, {
                 method: 'DELETE', credentials: 'include'
             });
             fetchHistory(); // Rafraîchit après suppression
@@ -110,8 +113,8 @@ export const CallProvider = ({ children }) => {
     };
 
     return (
-        <CallContext.Provider value={{ 
-            isRinging, incomingCaller, activeCall, callLogs, setCallLogs, 
+        <CallContext.Provider value={{
+            isRinging, incomingCaller, activeCall, callLogs, setCallLogs,
             simulateCall, answerCall, endCall, deleteLog, startOutgoingCall,
             fetchHistory // 🟢 Important pour la suite
         }}>

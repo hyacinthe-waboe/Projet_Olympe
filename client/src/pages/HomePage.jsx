@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { FaTasks, FaCalendarAlt, FaCommentDots, FaPhoneAlt } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
+import { API_URL } from '../config/api'; // <--- AJOUT DE L'IMPORT ICI
 
 const HomePage = () => {
   const navigate = useNavigate();
@@ -19,21 +20,24 @@ const HomePage = () => {
     const fetchDashboardData = async () => {
       try {
         // 1. Récupération des RDV
-        const resRdv = await fetch('http://127.0.0.1:8000/api/dashboard', { credentials: 'include' });
+        // 👇 REMPLACEMENT PAR ${API_URL} 👇
+        const resRdv = await fetch(`${API_URL}/api/dashboard`, { credentials: 'include' });
         if (resRdv.ok) {
           const dataRdv = await resRdv.json();
           setAppointments(dataRdv.appointments);
         }
 
         // 2. Récupération des Messages Non Lus
-        const resMsg = await fetch('http://127.0.0.1:8000/api/messages/unread', { credentials: 'include' });
+        // 👇 REMPLACEMENT PAR ${API_URL} 👇
+        const resMsg = await fetch(`${API_URL}/api/messages/unread`, { credentials: 'include' });
         if (resMsg.ok) {
             const dataMsg = await resMsg.json();
             setMessages(dataMsg.messages);
         }
 
         // 3. Récupération des Tâches
-        const resTasks = await fetch('http://127.0.0.1:8000/api/tasks', { credentials: 'include' });
+        // 👇 REMPLACEMENT PAR ${API_URL} 👇
+        const resTasks = await fetch(`${API_URL}/api/tasks`, { credentials: 'include' });
         if (resTasks.ok) {
             const dataTasks = await resTasks.json();
             const activeTasks = dataTasks.filter(t => !t.isDone);
@@ -41,7 +45,8 @@ const HomePage = () => {
         }
 
         // 4. 🟢 NOUVEAU : Récupération des Appels
-        const resCalls = await fetch('http://127.0.0.1:8000/api/calls', { credentials: 'include' });
+        // 👇 REMPLACEMENT PAR ${API_URL} 👇
+        const resCalls = await fetch(`${API_URL}/api/calls`, { credentials: 'include' });
         if (resCalls.ok) {
             const dataCalls = await resCalls.json();
             // On filtre pour ne garder QUE les appels manqués

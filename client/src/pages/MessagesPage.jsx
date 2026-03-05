@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useCall } from "../context/CallContext";
+import { API_URL } from '../config/api'; // <--- AJOUT DE L'IMPORT ICI
 
 // --- Icônes ---
 const CalendarIcon = () => (
@@ -672,7 +673,8 @@ export default function MessagesPage() {
     try {
       await Promise.all(
         idsToDelete.map((id) =>
-          fetch(`http://127.0.0.1:8000/api/messages/${id}`, {
+          // 👇 REMPLACEMENT PAR ${API_URL} 👇
+          fetch(`${API_URL}/api/messages/${id}`, {
             method: "DELETE",
             credentials: "include",
           }),
@@ -694,7 +696,8 @@ export default function MessagesPage() {
     if (!id) return;
 
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/messages/${id}/note`, {
+      // 👇 REMPLACEMENT PAR ${API_URL} 👇
+      const res = await fetch(`${API_URL}/api/messages/${id}/note`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ note: note }),
@@ -720,7 +723,8 @@ export default function MessagesPage() {
 
   const fetchMessages = async () => {
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/messages/all", {
+      // 👇 REMPLACEMENT PAR ${API_URL} 👇
+      const res = await fetch(`${API_URL}/api/messages/all`, {
         credentials: "include",
       });
       if (res.ok) {
@@ -734,7 +738,8 @@ export default function MessagesPage() {
 
   const handleMarkRead = async (id) => {
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/messages/${id}/read`, {
+      // 👇 REMPLACEMENT PAR ${API_URL} 👇
+      const res = await fetch(`${API_URL}/api/messages/${id}/read`, {
         method: "POST",
         credentials: "include",
       });
@@ -752,8 +757,9 @@ export default function MessagesPage() {
 
   const handleMarkUnread = async (id) => {
     try {
+      // 👇 REMPLACEMENT PAR ${API_URL} 👇
       const res = await fetch(
-        `http://127.0.0.1:8000/api/messages/${id}/unread`,
+        `${API_URL}/api/messages/${id}/unread`,
         { method: "POST", credentials: "include" },
       );
       if (res.ok) {
@@ -771,10 +777,12 @@ export default function MessagesPage() {
   const fetchInitialData = async () => {
     try {
       const [resCl, resAp] = await Promise.all([
-        fetch("http://127.0.0.1:8000/api/me/assignments", {
+        // 👇 REMPLACEMENT PAR ${API_URL} 👇
+        fetch(`${API_URL}/api/me/assignments`, {
           credentials: "include",
         }),
-        fetch("http://127.0.0.1:8000/api/appelants", {
+        // 👇 REMPLACEMENT PAR ${API_URL} 👇
+        fetch(`${API_URL}/api/appelants`, {
           credentials: "include",
         }),
       ]);
@@ -802,7 +810,8 @@ export default function MessagesPage() {
   const handleCreateMessage = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/messages", {
+      // 👇 REMPLACEMENT PAR ${API_URL} 👇
+      const res = await fetch(`${API_URL}/api/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newMsgData),
@@ -843,7 +852,7 @@ export default function MessagesPage() {
         selectedMsg={selectedMsg}
         onMarkRead={handleMarkRead}
         onMarkUnread={handleMarkUnread}
-        onSendReply={() => {}}
+        onSendReply={() => { }}
         onDelete={handleDeleteMessages}
       />
       <InfoPanel selectedMsg={selectedMsg} onSaveNote={handleSaveNote} />

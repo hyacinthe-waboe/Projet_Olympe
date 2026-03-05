@@ -1,3 +1,5 @@
+// src/pages/TelephonePage.jsx
+
 import React, { useState } from "react";
 import {
   FaPhone,
@@ -9,12 +11,13 @@ import {
   FaCommentDots,
   FaTimes,
   FaTrashAlt,
-  FaArrowUp,    
-  FaArrowDown   
- 
+  FaArrowUp,
+  FaArrowDown
+
 } from "react-icons/fa";
 import { useCall } from "../context/CallContext.jsx";
 import { useNavigate } from "react-router-dom";
+import { API_URL } from '../config/api'; // <--- AJOUT DE L'IMPORT ICI
 
 export default function TelephonePage() {
   const navigate = useNavigate();
@@ -26,10 +29,10 @@ export default function TelephonePage() {
     simulateCall,
     answerCall,
     endCall,
-    callLogs, 
+    callLogs,
     setCallLogs,
     deleteLog,
-    startOutgoingCall, 
+    startOutgoingCall,
     fetchHistory,
   } = useCall();
 
@@ -44,7 +47,7 @@ export default function TelephonePage() {
   const [selectedHistoricalCall, setSelectedHistoricalCall] = useState(null);
   const [currentCallLogId, setCurrentCallLogId] = useState(null);
 
-React.useEffect(() => {
+  React.useEffect(() => {
     setCallLogs([]); // 🟢 Ajoute cette ligne : On vide la liste INSTANTANÉMENT
     fetchHistory();  // Puis on télécharge la nouvelle liste
   }, []);
@@ -68,20 +71,21 @@ React.useEffect(() => {
     setSelectedHistoricalCall(null);
   };
 
-const handleDecline = async () => {
+  const handleDecline = async () => {
     // 🟢 Enregistre en base de données comme "manqué"
     try {
-        await fetch("http://127.0.0.1:8000/api/calls", {
-            method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                number: incomingCaller.number,
-                contactName: incomingCaller.isKnown ? incomingCaller.name : "Inconnu",
-                status: "missed",
-                appelantId: incomingCaller.id
-            }),
-            credentials: "include"
-        });
-        fetchHistory(); // Rafraîchit la colonne de gauche
+      // 👇 REMPLACEMENT PAR ${API_URL} 👇
+      await fetch(`${API_URL}/api/calls`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          number: incomingCaller.number,
+          contactName: incomingCaller.isKnown ? incomingCaller.name : "Inconnu",
+          status: "missed",
+          appelantId: incomingCaller.id
+        }),
+        credentials: "include"
+      });
+      fetchHistory(); // Rafraîchit la colonne de gauche
     } catch (err) { console.error(err); }
     endCall();
   };
@@ -92,7 +96,8 @@ const handleDecline = async () => {
 
     setIsSending(true);
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/messages", {
+      // 👇 REMPLACEMENT PAR ${API_URL} 👇
+      const response = await fetch(`${API_URL}/api/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -120,22 +125,23 @@ const handleDecline = async () => {
     }
   };
 
-const handleEndCallWithNote = async () => {
+  const handleEndCallWithNote = async () => {
     if (!activeCall) return;
 
     // 🟢 1. ON SAUVEGARDE L'APPEL DANS SYMFONY (Pour la liste privée)
     try {
-        await fetch("http://127.0.0.1:8000/api/calls", {
-            method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                number: activeCall.number,
-                contactName: activeCall.isKnown ? activeCall.name : "Appel sortant",
-                status: activeCall.direction === "outgoing" ? "outgoing" : "completed",
-                note: callNote,
-                appelantId: activeCall.id
-            }),
-            credentials: "include"
-        });
+      // 👇 REMPLACEMENT PAR ${API_URL} 👇
+      await fetch(`${API_URL}/api/calls`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          number: activeCall.number,
+          contactName: activeCall.isKnown ? activeCall.name : "Appel sortant",
+          status: activeCall.direction === "outgoing" ? "outgoing" : "completed",
+          note: callNote,
+          appelantId: activeCall.id
+        }),
+        credentials: "include"
+      });
     } catch (err) { console.error("Erreur sauvegarde appel", err); }
 
     // 2. CREATION DE LA TÂCHE (Pour les consignes du médecin)
@@ -143,7 +149,8 @@ const handleEndCallWithNote = async () => {
       setIsSavingNote(true);
       const contactInfo = activeCall.isKnown ? activeCall.name : activeCall.number;
       try {
-        await fetch("http://127.0.0.1:8000/api/tasks", {
+        // 👇 REMPLACEMENT PAR ${API_URL} 👇
+        await fetch(`${API_URL}/api/tasks`, {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ title: `📞 Note - ${contactInfo} : ${callNote}`, isDone: false }),
           credentials: "include",
@@ -154,7 +161,7 @@ const handleEndCallWithNote = async () => {
     // 3. FIN D'APPEL ET RAFRAÎCHISSEMENT
     await fetchHistory();
     setCallNote("");
-    setCurrentCallLogId(null); 
+    setCurrentCallLogId(null);
     setIsSavingNote(false);
     endCall();
   };
@@ -165,10 +172,10 @@ const handleEndCallWithNote = async () => {
     if (dialedNumber.length < 14) setDialedNumber((prev) => prev + digit);
   };
 
-const handleDialCall = async () => {
+  const handleDialCall = async () => {
     if (!dialedNumber) return;
     await startOutgoingCall(dialedNumber);
-    setDialedNumber(""); 
+    setDialedNumber("");
     setSelectedHistoricalCall(null);
   };
 
@@ -239,33 +246,32 @@ const handleDialCall = async () => {
             .filter((call) => activeTab === "Tous" || call.status === "missed")
             .map((call) => (
               // 🟢 AJOUT DE 'group relative' pour gérer l'apparition au survol
-<div
+              <div
                 key={call.logId}
                 onClick={() => !activeCall && setSelectedHistoricalCall(call)}
-                className={`group relative flex items-center p-4 border-b border-gray-50 cursor-pointer transition ${
-                  selectedHistoricalCall?.logId === call.logId
+                className={`group relative flex items-center p-4 border-b border-gray-50 cursor-pointer transition ${selectedHistoricalCall?.logId === call.logId
                     ? "bg-blue-50 border-l-4 border-l-blue-500"
                     : "hover:bg-gray-50"
-                } ${activeCall ? "opacity-50 cursor-not-allowed" : ""}`}
+                  } ${activeCall ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 {/* 🟢 COULEUR DE L'AVATAR (Vert = Entrant, Bleu = Sortant, Rouge = Manqué) */}
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white flex-shrink-0 
-                  ${call.status === "missed" ? "bg-red-500" : 
-                    call.status === "outgoing" ? "bg-blue-500" : 
-                    "bg-emerald-500"}`}>
+                  ${call.status === "missed" ? "bg-red-500" :
+                    call.status === "outgoing" ? "bg-blue-500" :
+                      "bg-emerald-500"}`}>
                   {call.name && call.name !== "Appel sortant" ? call.name.charAt(0).toUpperCase() : "?"}
                 </div>
-                
+
                 <div className="ml-3 flex-1 min-w-0 pr-6">
                   <p className={`font-semibold truncate ${call.status === "missed" ? "text-red-600" : "text-gray-900"}`}>
                     {call.name}
                   </p>
-                  
+
                   {/* 🟢 ICÔNE ET NUMÉRO SOUS LE NOM */}
                   <p className="text-xs text-gray-500 truncate flex items-center gap-1 mt-0.5">
-                    {call.status === "outgoing" ? <FaArrowUp className="text-blue-500" size={10} /> : 
-                     call.status === "missed" ? <FaTimes className="text-red-500" size={10} /> : 
-                     <FaArrowDown className="text-emerald-500" size={10} />}
+                    {call.status === "outgoing" ? <FaArrowUp className="text-blue-500" size={10} /> :
+                      call.status === "missed" ? <FaTimes className="text-red-500" size={10} /> :
+                        <FaArrowDown className="text-emerald-500" size={10} />}
                     {call.number}
                   </p>
                 </div>
@@ -273,10 +279,10 @@ const handleDialCall = async () => {
 
                 <button
                   onClick={(e) => {
-                    e.stopPropagation(); 
+                    e.stopPropagation();
                     deleteLog(call.logId);
                     if (selectedHistoricalCall?.logId === call.logId) {
-                      setSelectedHistoricalCall(null); 
+                      setSelectedHistoricalCall(null);
                     }
                   }}
                   className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all bg-white hover:bg-red-50 rounded-full shadow-sm"
@@ -431,14 +437,14 @@ const handleDialCall = async () => {
           onChange={(e) => setCallNote(e.target.value)}
         />
 
-{/* --- ÉCRAN DU CLAVIER --- */}
+        {/* --- ÉCRAN DU CLAVIER --- */}
         <div className="mb-6 mt-4">
           <div className="w-full h-14 bg-white border border-gray-200 rounded-xl flex items-center justify-between px-4 mb-2 shadow-sm">
             <span className="text-xl font-semibold tracking-widest text-gray-800">
               {dialedNumber || "..."}
             </span>
             {dialedNumber && (
-              <button 
+              <button
                 onClick={() => setDialedNumber((prev) => prev.slice(0, -1))}
                 className="text-gray-400 hover:text-red-500 font-bold text-xl"
               >
@@ -456,8 +462,8 @@ const handleDialCall = async () => {
               onClick={() => handleKeypadPress(key)}
               disabled={!!activeCall || isRinging}
               className={`py-3 rounded-xl font-bold text-lg transition shadow-sm border border-gray-100 
-                ${activeCall || isRinging 
-                  ? "bg-gray-50 text-gray-300 cursor-not-allowed" 
+                ${activeCall || isRinging
+                  ? "bg-gray-50 text-gray-300 cursor-not-allowed"
                   : "bg-white text-gray-700 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 active:bg-blue-100"}`}
             >
               {key}
@@ -470,11 +476,10 @@ const handleDialCall = async () => {
           <button
             onClick={handleDialCall}
             disabled={!dialedNumber}
-            className={`w-full py-4 rounded-xl font-bold flex justify-center items-center gap-2 transition shadow-sm ${
-              dialedNumber 
-                ? "bg-green-600 text-white hover:bg-green-700" 
+            className={`w-full py-4 rounded-xl font-bold flex justify-center items-center gap-2 transition shadow-sm ${dialedNumber
+                ? "bg-green-600 text-white hover:bg-green-700"
                 : "bg-green-100 text-green-400 cursor-not-allowed"
-            }`}
+              }`}
           >
             <FaPhone /> Appeler
           </button>

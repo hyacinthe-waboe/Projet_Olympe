@@ -10,6 +10,7 @@ import fr from "date-fns/locale/fr";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { FaTimes, FaTrash } from "react-icons/fa"; // Ajout de FaTrash
 import { useNavigate } from "react-router-dom";
+import { API_URL } from '../config/api'; // <--- AJOUT DE L'IMPORT ICI
 
 // --- CONFIGURATION ---
 const locales = { fr: fr };
@@ -438,7 +439,7 @@ export default function CalendarPage() {
       <div className="flex flex-col mb-1">
         <div className="font-bold text-xs truncate">{event.title}</div>
         {/* Nom du patient cliquable avec redirection */}
-        <div 
+        <div
           onClick={(e) => {
             e.stopPropagation(); // ⛔ Empêche d'ouvrir la modale du RDV
             if (event.appelantId) navigate(`/patient/${event.appelantId}`);
@@ -463,7 +464,7 @@ export default function CalendarPage() {
     <div className="flex flex-row items-center justify-between w-full h-full">
       <div className="font-bold text-sm w-1/3 truncate">{event.title}</div>
 
-      <div 
+      <div
         onClick={(e) => {
           e.stopPropagation(); // ⛔ Empêche d'ouvrir la modale du RDV
           if (event.appelantId) navigate(`/patient/${event.appelantId}`);
@@ -486,9 +487,10 @@ export default function CalendarPage() {
 
   const fetchData = async () => {
     try {
+      // 👇 REMPLACEMENT PAR ${API_URL} 👇
       const clientUrl = isAdmin
-        ? "http://127.0.0.1:8000/api/admin/clients"
-        : "http://127.0.0.1:8000/api/me/assignments";
+        ? `${API_URL}/api/admin/clients`
+        : `${API_URL}/api/me/assignments`;
 
       const resCl = await fetch(clientUrl, { credentials: "include" });
       if (resCl.ok) {
@@ -505,7 +507,8 @@ export default function CalendarPage() {
         );
       }
 
-      const resAp = await fetch("http://127.0.0.1:8000/api/appelants", {
+      // 👇 REMPLACEMENT PAR ${API_URL} 👇
+      const resAp = await fetch(`${API_URL}/api/appelants`, {
         credentials: "include",
       });
       if (resAp.ok) {
@@ -514,7 +517,8 @@ export default function CalendarPage() {
         setAppelants(array.filter((a) => a && a.id));
       }
 
-      let url = "http://127.0.0.1:8000/api/rendezvous";
+      // 👇 REMPLACEMENT PAR ${API_URL} 👇
+      let url = `${API_URL}/api/rendezvous`;
 
       if (selectedClient) url += `?client_id=${selectedClient}`;
       const resRdv = await fetch(url, { credentials: "include" });
@@ -595,7 +599,8 @@ export default function CalendarPage() {
     // ... (Reste de ta fonction d'envoi fetch) ...
 
     try {
-      let url = "http://127.0.0.1:8000/api/rendezvous";
+      // 👇 REMPLACEMENT PAR ${API_URL} 👇
+      let url = `${API_URL}/api/rendezvous`;
       let method = "POST";
 
       if (formData.id) {
@@ -625,7 +630,8 @@ export default function CalendarPage() {
   // 4. Suppression
   const handleDeleteRdv = async (rdvId) => {
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/rendezvous/${rdvId}`, {
+      // 👇 REMPLACEMENT PAR ${API_URL} 👇
+      const res = await fetch(`${API_URL}/api/rendezvous/${rdvId}`, {
         method: "DELETE",
         credentials: "include",
       });

@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate } from 'react-router-dom';
+import { API_URL } from '../config/api'; // <--- AJOUT DE L'IMPORT ICI
 
 import {
   FaSearch,
@@ -231,7 +232,7 @@ const AppelantFormModal = ({
     ? "Modifier l'Appelant"
     : "Ajouter un Appelant";
   const isHiddenDoctor = initialData?.linkedClient && !clientList.some(c => c.id === initialData.linkedClient);
-  
+
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
@@ -301,7 +302,7 @@ const AppelantFormModal = ({
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Médecin traitant <span className="text-red-500">*</span>
               </label>
-              
+
               {isHiddenDoctor ? (
                 // 🔒 Affichage verrouillé si le médecin est hors scope
                 <div className="w-full px-3 py-2 bg-gray-100 border border-gray-200 rounded-lg text-gray-500 text-sm font-medium cursor-not-allowed flex items-center gap-2">
@@ -425,9 +426,10 @@ export default function ContactPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // 👇 REMPLACEMENT PAR ${API_URL} 👇
         const clientUrl = isAdmin
-          ? "http://127.0.0.1:8000/api/admin/clients"
-          : "http://127.0.0.1:8000/api/me/assignments";
+          ? `${API_URL}/api/admin/clients`
+          : `${API_URL}/api/me/assignments`;
 
         const resClients = await fetch(clientUrl, { credentials: "include" });
         if (!resClients.ok)
@@ -469,8 +471,9 @@ export default function ContactPage() {
           .filter(Boolean);
 
         // --- Appelants ---
+        // 👇 REMPLACEMENT PAR ${API_URL} 👇
         const resAppelants = await fetch(
-          "http://127.0.0.1:8000/api/appelants",
+          `${API_URL}/api/appelants`,
           { credentials: "include" },
         );
         const apData = resAppelants.ok ? await resAppelants.json() : {};
@@ -562,15 +565,16 @@ export default function ContactPage() {
     setContactToEdit(null);
   };
 
-const handleDeleteContact = async (contactToDelete) => {
+  const handleDeleteContact = async (contactToDelete) => {
     // 1. On vérifie directement avec l'objet complet
     if (!window.confirm("Êtes-vous sûr de vouloir supprimer ce contact ?")) return;
     if (!contactToDelete) return;
 
     // 2. On choisit la bonne URL selon le type réel de l'objet cliqué
+    // 👇 REMPLACEMENT PAR ${API_URL} 👇
     const url = contactToDelete.type === "client"
-        ? `http://127.0.0.1:8000/api/admin/clients/${contactToDelete.id}`
-        : `http://127.0.0.1:8000/api/appelants/${contactToDelete.id}`;
+      ? `${API_URL}/api/admin/clients/${contactToDelete.id}`
+      : `${API_URL}/api/appelants/${contactToDelete.id}`;
 
     try {
       const response = await fetch(url, {
@@ -585,9 +589,9 @@ const handleDeleteContact = async (contactToDelete) => {
       if (response.ok) {
         // 3. On filtre en vérifiant l'ID ET le type pour éviter de supprimer le mauvais !
         setContacts((prev) => prev.filter((c) => !(c.id === contactToDelete.id && c.type === contactToDelete.type)));
-        
+
         if (selectedContact?.id === contactToDelete.id && selectedContact?.type === contactToDelete.type) {
-            setSelectedContact(null);
+          setSelectedContact(null);
         }
         alert("Suppression réussie !");
       } else {
@@ -615,8 +619,9 @@ const handleDeleteContact = async (contactToDelete) => {
 
       let response;
       if (contactToEdit) {
+        // 👇 REMPLACEMENT PAR ${API_URL} 👇
         response = await fetch(
-          `http://127.0.0.1:8000/api/admin/clients/${contactToEdit.id}`,
+          `${API_URL}/api/admin/clients/${contactToEdit.id}`,
           {
             method: "PUT",
             headers: {
@@ -628,7 +633,8 @@ const handleDeleteContact = async (contactToDelete) => {
           },
         );
       } else {
-        response = await fetch("http://127.0.0.1:8000/api/admin/clients", {
+        // 👇 REMPLACEMENT PAR ${API_URL} 👇
+        response = await fetch(`${API_URL}/api/admin/clients`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -688,8 +694,9 @@ const handleDeleteContact = async (contactToDelete) => {
         linkedClient: formData.linkedClient || null,
       };
 
+      // 👇 REMPLACEMENT PAR ${API_URL} 👇
       const response = await fetch(
-        "http://127.0.0.1:8000/api/appelants/nouveau",
+        `${API_URL}/api/appelants/nouveau`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -858,7 +865,7 @@ const handleDeleteContact = async (contactToDelete) => {
 
               {/* 🟢 NOUVEAU BOUTON : Accès direct à l'historique 360° */}
               <div className="col-span-1 md:col-span-2 pt-4 border-t border-gray-100 mt-2">
-                <button 
+                <button
                   onClick={() => navigate(`/patient/${contact.id}`)}
                   className="w-full py-3 bg-blue-50 text-blue-700 rounded-lg font-semibold hover:bg-blue-100 transition flex items-center justify-center gap-2"
                 >

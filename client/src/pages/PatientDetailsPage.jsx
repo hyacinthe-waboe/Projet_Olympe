@@ -1,5 +1,8 @@
+// src/pages/PatientDetailsPage.jsx
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { API_URL } from '../config/api'; // <--- AJOUT DE L'IMPORT ICI
 import {
   FaPhone,
   FaCalendarAlt,
@@ -30,10 +33,12 @@ const PatientDetailsPage = () => {
   const fetchHistory = async () => {
     try {
       const [historyRes, callsRes] = await Promise.all([
-        fetch(`http://127.0.0.1:8000/api/patients/${id}/history`, {
+        // 👇 REMPLACEMENT PAR ${API_URL} 👇
+        fetch(`${API_URL}/api/patients/${id}/history`, {
           credentials: "include",
         }),
-        fetch(`http://127.0.0.1:8000/api/calls/patient/${id}`, {
+        // 👇 REMPLACEMENT PAR ${API_URL} 👇
+        fetch(`${API_URL}/api/calls/patient/${id}`, {
           credentials: "include",
         }), // 👈 La route qu'on a créée !
       ]);
@@ -59,7 +64,8 @@ const PatientDetailsPage = () => {
     setIsSending(true);
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/messages", {
+      // 👇 REMPLACEMENT PAR ${API_URL} 👇
+      const response = await fetch(`${API_URL}/api/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -95,8 +101,9 @@ const PatientDetailsPage = () => {
 
     try {
       // On tape sur la nouvelle route de l'AppelantController
+      // 👇 REMPLACEMENT PAR ${API_URL} 👇
       const res = await fetch(
-        `http://127.0.0.1:8000/api/appelants/${id}/clear-history`,
+        `${API_URL}/api/appelants/${id}/clear-history`,
         {
           method: "DELETE",
           credentials: "include",
@@ -277,17 +284,16 @@ const PatientDetailsPage = () => {
                 {/* 🟢 Icônes et Couleurs dynamiques selon le type */}
                 <div
                   className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-white
-                                    ${
-                                      item.type === "appointment"
-                                        ? "bg-blue-500"
-                                        : item.type === "message"
-                                          ? "bg-purple-500"
-                                          : item.status === "missed"
-                                            ? "bg-red-500"
-                                            : item.status === "outgoing"
-                                              ? "bg-blue-400"
-                                              : "bg-emerald-500"
-                                    }`}
+                                    ${item.type === "appointment"
+                      ? "bg-blue-500"
+                      : item.type === "message"
+                        ? "bg-purple-500"
+                        : item.status === "missed"
+                          ? "bg-red-500"
+                          : item.status === "outgoing"
+                            ? "bg-blue-400"
+                            : "bg-emerald-500"
+                    }`}
                 >
                   {item.type === "appointment" ? (
                     <FaCalendarAlt size={14} />
@@ -355,11 +361,10 @@ const PatientDetailsPage = () => {
         <button
           onClick={handleSendMessage}
           disabled={isSending || !messageContent.trim()}
-          className={`w-full py-3 rounded-lg text-sm font-semibold text-white transition flex justify-center items-center gap-2 flex-shrink-0 ${
-            isSending || !messageContent.trim()
+          className={`w-full py-3 rounded-lg text-sm font-semibold text-white transition flex justify-center items-center gap-2 flex-shrink-0 ${isSending || !messageContent.trim()
               ? "bg-blue-300 cursor-not-allowed"
               : "bg-blue-600 hover:bg-blue-700 shadow-md hover:shadow-lg"
-          }`}
+            }`}
         >
           {isSending ? "Envoi..." : "Envoyer le message"}
         </button>
