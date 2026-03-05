@@ -6,34 +6,30 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
 
 class SecurityController extends AbstractController
 {
-    #[Route(path: '/login', name: 'app_login', methods: ['POST', 'GET'])]
-    public function login(AuthenticationUtils $authenticationUtils): Response
+    #[Route(path: '/login', name: 'app_login', methods: ['POST'])]
+    public function login(): Response
     {
-        // Si l'utilisateur est connecté
+        // Si l'utilisateur est connecté (authentification réussie)
         if ($this->getUser()) {
             return $this->json([
-                'message' => 'Vous êtes connecté avec succès !',
-                'id' => $this->getUser()->getId(),              // <--- AJOUTÉ
-                'email' => $this->getUser()->getUserIdentifier(),
-                'firstName' => $this->getUser()->getFirstName(), // <--- AJOUTÉ (Attention majuscule N)
-                'lastName' => $this->getUser()->getLastName(),   // <--- AJOUTÉ
-                'roles' => $this->getUser()->getRoles(),
-                'status' => 'OK'
+                'message' => 'Connexion réussie',
+                'user' => [
+                    'id' => $this->getUser()->getId(),
+                    'email' => $this->getUser()->getUserIdentifier(),
+                    'firstName' => $this->getUser()->getFirstName(),
+                    'lastName' => $this->getUser()->getLastName(),
+                    'roles' => $this->getUser()->getRoles(),
+                ]
             ]);
         }
 
-        // Sinon, gestion d'erreur classique
-        $error = $authenticationUtils->getLastAuthenticationError();
-        $lastUsername = $authenticationUtils->getLastUsername();
-
-        return $this->render('security/login.html.twig', [
-            'last_username' => $lastUsername, 
-            'error' => $error
-        ]);
+        // Si pas connecté après tentative → Erreur 401
+        return $this->json([
+            'error' => 'Identifiants incorrects'
+        ], 401);
     }
 
     #[Route(path: '/logout', name: 'app_logout')]
