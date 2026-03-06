@@ -21,7 +21,7 @@ security:
             stateless: false # 👈 AJOUTE CETTE LIGNE
 
             json_login:
-                check_path: app_login
+                check_path: /login
                 success_handler: App\Security\LoginSuccessHandler
 
             logout:
@@ -37,14 +37,17 @@ security:
     access_control:
         # Autorise l'accès à /api/me seulement si on est connecté
         - { path: ^/api/me, roles: IS_AUTHENTICATED_FULLY }
-        
+
         # ✅ AJOUT : Autorise les secrétaires sur leurs outils de travail
-        - { path: ^/api/messages/my-clients, roles: [ROLE_ADMIN, ROLE_SECRETAIRE] }
+        - {
+              path: ^/api/messages/my-clients,
+              roles: [ROLE_ADMIN, ROLE_SECRETAIRE],
+          }
         - { path: ^/api/appelants, roles: [ROLE_ADMIN, ROLE_SECRETAIRE] }
-        
+
         # L'admin gère le reste
         - { path: ^/api/admin, roles: ROLE_ADMIN }
-        
+
 when@test:
     security:
         password_hashers:
