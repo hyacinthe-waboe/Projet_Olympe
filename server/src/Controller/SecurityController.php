@@ -8,6 +8,18 @@ use Symfony\Component\Routing\Attribute\Route;
 
 class SecurityController extends AbstractController
 {
+    #[Route(path: '/login', name: 'app_login', methods: ['POST'])]
+    public function login(): JsonResponse
+    {
+        // Cette méthode ne sera JAMAIS exécutée
+        // Le firewall json_login intercepte la requête AVANT
+        // Mais la route DOIT exister pour que Symfony la reconnaisse !
+        
+        return $this->json([
+            'message' => 'Cette ligne ne devrait jamais être exécutée'
+        ]);
+    }
+
     #[Route(path: '/logout', name: 'app_logout')]
     public function logout(): void
     {
