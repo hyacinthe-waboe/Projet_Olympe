@@ -1,9 +1,11 @@
 [phases.setup]
 aptPkgs = ['libpq-dev']
-nixPkgs = ['php83Extensions.pdo_pgsql', 'php83Extensions.pgsql']
 
 [phases.install]
-cmds = ['composer install --optimize-autoloader --no-scripts --no-interaction']
+cmds = [
+  'install-php-extensions pdo_pgsql pgsql',
+  'composer install --optimize-autoloader --no-scripts --no-interaction'
+]
 
 [start]
 cmd = 'php -S 0.0.0.0:$PORT -t server/public'
