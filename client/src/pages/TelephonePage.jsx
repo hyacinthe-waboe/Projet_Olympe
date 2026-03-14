@@ -9,9 +9,11 @@ import {
   FaCommentDots,
   FaTimes,
   FaTrashAlt,
-  FaArrowUp,    
-  FaArrowDown   
- 
+  FaArrowUp,
+  FaArrowDown,
+  FaCopy,
+  FaUserPlus
+
 } from "react-icons/fa";
 import { useCall } from "../context/CallContext.jsx";
 import { useNavigate } from "react-router-dom";
@@ -26,10 +28,10 @@ export default function TelephonePage() {
     simulateCall,
     answerCall,
     endCall,
-    callLogs, 
+    callLogs,
     setCallLogs,
     deleteLog,
-    startOutgoingCall, 
+    startOutgoingCall,
     fetchHistory,
   } = useCall();
 
@@ -44,7 +46,7 @@ export default function TelephonePage() {
   const [selectedHistoricalCall, setSelectedHistoricalCall] = useState(null);
   const [currentCallLogId, setCurrentCallLogId] = useState(null);
 
-React.useEffect(() => {
+  React.useEffect(() => {
     setCallLogs([]); // 🟢 Ajoute cette ligne : On vide la liste INSTANTANÉMENT
     fetchHistory();  // Puis on télécharge la nouvelle liste
   }, []);
@@ -68,20 +70,20 @@ React.useEffect(() => {
     setSelectedHistoricalCall(null);
   };
 
-const handleDecline = async () => {
+  const handleDecline = async () => {
     // 🟢 Enregistre en base de données comme "manqué"
     try {
-        await fetch("http://127.0.0.1:8000/api/calls", {
-            method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                number: incomingCaller.number,
-                contactName: incomingCaller.isKnown ? incomingCaller.name : "Inconnu",
-                status: "missed",
-                appelantId: incomingCaller.id
-            }),
-            credentials: "include"
-        });
-        fetchHistory(); // Rafraîchit la colonne de gauche
+      await fetch("http://127.0.0.1:8000/api/calls", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          number: incomingCaller.number,
+          contactName: incomingCaller.isKnown ? incomingCaller.name : "Inconnu",
+          status: "missed",
+          appelantId: incomingCaller.id
+        }),
+        credentials: "include"
+      });
+      fetchHistory(); // Rafraîchit la colonne de gauche
     } catch (err) { console.error(err); }
     endCall();
   };
@@ -122,26 +124,48 @@ const handleDecline = async () => {
 
 const handleEndCallWithNote = async () => {
     if (!activeCall) return;
+    setIsSavingNote(true);
 
-    // 🟢 1. ON SAUVEGARDE L'APPEL DANS SYMFONY (Pour la liste privée)
+    // 🟢 1. VÉRIFICATION DE DERNIÈRE MINUTE
+    // Le patient a-t-il été enregistré pendant qu'on était en ligne ?
+    let finalContactName = activeCall.isKnown ? activeCall.name : "Appel sortant";
+    let finalAppelantId = activeCall.id;
+    let finalIsKnown = activeCall.isKnown;
+
+    // Si le numéro était inconnu au début de l'appel, on revérifie maintenant !
+    if (!activeCall.isKnown) {
+      try {
+        const searchRes = await fetch(`http://127.0.0.1:8000/api/appelants/search?phone=${encodeURIComponent(activeCall.number)}`);
+        if (searchRes.ok) {
+          const searchData = await searchRes.json();
+          // Si on trouve un ID, c'est que le patient a été créé !
+          if (searchData && searchData.id) {
+            finalContactName = searchData.nom ? `${searchData.prenom} ${searchData.nom}` : searchData.name || "Patient Connu";
+            finalAppelantId = searchData.id;
+            finalIsKnown = true; // Il est désormais connu !
+          }
+        }
+      } catch (err) { console.error("Erreur vérification patient", err); }
+    }
+
+    // 🟢 2. ON SAUVEGARDE L'APPEL DANS SYMFONY
     try {
-        await fetch("http://127.0.0.1:8000/api/calls", {
-            method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                number: activeCall.number,
-                contactName: activeCall.isKnown ? activeCall.name : "Appel sortant",
-                status: activeCall.direction === "outgoing" ? "outgoing" : "completed",
-                note: callNote,
-                appelantId: activeCall.id
-            }),
-            credentials: "include"
-        });
+      await fetch("http://127.0.0.1:8000/api/calls", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          number: activeCall.number,
+          contactName: finalContactName,
+          status: activeCall.direction === "outgoing" ? "outgoing" : "completed",
+          note: callNote,
+          appelantId: finalAppelantId
+        }),
+        credentials: "include"
+      });
     } catch (err) { console.error("Erreur sauvegarde appel", err); }
 
-    // 2. CREATION DE LA TÂCHE (Pour les consignes du médecin)
+    // 🟢 3. CREATION DE LA TÂCHE
     if (callNote.trim()) {
-      setIsSavingNote(true);
-      const contactInfo = activeCall.isKnown ? activeCall.name : activeCall.number;
+      const contactInfo = finalIsKnown ? finalContactName : activeCall.number;
       try {
         await fetch("http://127.0.0.1:8000/api/tasks", {
           method: "POST", headers: { "Content-Type": "application/json" },
@@ -151,10 +175,22 @@ const handleEndCallWithNote = async () => {
       } catch (err) { console.error(err); }
     }
 
-    // 3. FIN D'APPEL ET RAFRAÎCHISSEMENT
+    // 🟢 4. RAFRAÎCHISSEMENT ET AFFICHAGE AUTOMATIQUE
     await fetchHistory();
+    
+    // Au lieu de retourner sur l'écran vide, on force l'affichage du patient mis à jour !
+    setSelectedHistoricalCall({
+      ...activeCall,
+      name: finalContactName,
+      isKnown: finalIsKnown,
+      id: finalAppelantId,
+      note: callNote,
+      status: activeCall.direction === "outgoing" ? "outgoing" : "completed",
+      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    });
+
     setCallNote("");
-    setCurrentCallLogId(null); 
+    setCurrentCallLogId(null);
     setIsSavingNote(false);
     endCall();
   };
@@ -165,10 +201,10 @@ const handleEndCallWithNote = async () => {
     if (dialedNumber.length < 14) setDialedNumber((prev) => prev + digit);
   };
 
-const handleDialCall = async () => {
+  const handleDialCall = async () => {
     if (!dialedNumber) return;
     await startOutgoingCall(dialedNumber);
-    setDialedNumber(""); 
+    setDialedNumber("");
     setSelectedHistoricalCall(null);
   };
 
@@ -239,33 +275,32 @@ const handleDialCall = async () => {
             .filter((call) => activeTab === "Tous" || call.status === "missed")
             .map((call) => (
               // 🟢 AJOUT DE 'group relative' pour gérer l'apparition au survol
-<div
+              <div
                 key={call.logId}
                 onClick={() => !activeCall && setSelectedHistoricalCall(call)}
-                className={`group relative flex items-center p-4 border-b border-gray-50 cursor-pointer transition ${
-                  selectedHistoricalCall?.logId === call.logId
-                    ? "bg-blue-50 border-l-4 border-l-blue-500"
-                    : "hover:bg-gray-50"
-                } ${activeCall ? "opacity-50 cursor-not-allowed" : ""}`}
+                className={`group relative flex items-center p-4 border-b border-gray-50 cursor-pointer transition ${selectedHistoricalCall?.logId === call.logId
+                  ? "bg-blue-50 border-l-4 border-l-blue-500"
+                  : "hover:bg-gray-50"
+                  } ${activeCall ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 {/* 🟢 COULEUR DE L'AVATAR (Vert = Entrant, Bleu = Sortant, Rouge = Manqué) */}
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white flex-shrink-0 
-                  ${call.status === "missed" ? "bg-red-500" : 
-                    call.status === "outgoing" ? "bg-blue-500" : 
-                    "bg-emerald-500"}`}>
+                  ${call.status === "missed" ? "bg-red-500" :
+                    call.status === "outgoing" ? "bg-blue-500" :
+                      "bg-emerald-500"}`}>
                   {call.name && call.name !== "Appel sortant" ? call.name.charAt(0).toUpperCase() : "?"}
                 </div>
-                
+
                 <div className="ml-3 flex-1 min-w-0 pr-6">
                   <p className={`font-semibold truncate ${call.status === "missed" ? "text-red-600" : "text-gray-900"}`}>
                     {call.name}
                   </p>
-                  
+
                   {/* 🟢 ICÔNE ET NUMÉRO SOUS LE NOM */}
                   <p className="text-xs text-gray-500 truncate flex items-center gap-1 mt-0.5">
-                    {call.status === "outgoing" ? <FaArrowUp className="text-blue-500" size={10} /> : 
-                     call.status === "missed" ? <FaTimes className="text-red-500" size={10} /> : 
-                     <FaArrowDown className="text-emerald-500" size={10} />}
+                    {call.status === "outgoing" ? <FaArrowUp className="text-blue-500" size={10} /> :
+                      call.status === "missed" ? <FaTimes className="text-red-500" size={10} /> :
+                        <FaArrowDown className="text-emerald-500" size={10} />}
                     {call.number}
                   </p>
                 </div>
@@ -273,10 +308,10 @@ const handleDialCall = async () => {
 
                 <button
                   onClick={(e) => {
-                    e.stopPropagation(); 
+                    e.stopPropagation();
                     deleteLog(call.logId);
                     if (selectedHistoricalCall?.logId === call.logId) {
-                      setSelectedHistoricalCall(null); 
+                      setSelectedHistoricalCall(null);
                     }
                   }}
                   className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all bg-white hover:bg-red-50 rounded-full shadow-sm"
@@ -372,37 +407,57 @@ const handleDialCall = async () => {
                   <p className="text-gray-800 italic">"{dataToShow.note}"</p>
                 </div>
               )}
-              {dataToShow.isKnown && (
-                <>
-                  <h4 className="font-semibold text-lg mb-4 text-gray-800">
-                    Actions rapides
-                  </h4>
-                  <div className="flex gap-4 border-t border-gray-100 pt-6">
+              {/* --- ZONE DES ACTIONS RAPIDES --- */}
+              <h4 className="font-semibold text-lg mb-4 text-gray-800 mt-6">
+                Actions rapides
+              </h4>
+              <div className="flex flex-wrap gap-4 border-t border-gray-100 pt-6">
+
+                {/* 🔴 SI PATIENT INCONNU : Bouton pour l'enregistrer */}
+                {!dataToShow.isKnown && (
+                  <button
+                    onClick={() => navigate("/users", {
+                      state: { openForm: true, prefillNumber: dataToShow.number }
+                    })}
+                    className="px-6 py-2.5 bg-blue-50 text-blue-700 rounded-lg font-bold flex justify-center items-center gap-2 hover:bg-blue-100 transition shadow-sm"
+                  >
+                    <FaUserPlus /> Enregistrer ce contact
+                  </button>
+                )}
+
+                {/* 🟢 SI PATIENT CONNU : Boutons classiques */}
+                {dataToShow.isKnown && (
+                  <>
                     <button
                       onClick={() => navigate("/calendar")}
-                      className="px-6 py-2.5 bg-blue-50 text-blue-700 rounded-lg font-bold flex justify-center items-center gap-2 hover:bg-blue-100 transition"
+                      className="px-6 py-2.5 bg-blue-50 text-blue-700 rounded-lg font-bold flex justify-center items-center gap-2 hover:bg-blue-100 transition shadow-sm"
                     >
                       <FaCalendarAlt /> Prendre RDV
-                    </button>
-
-                    <button
-                      onClick={() => setIsMessageModalOpen(true)}
-                      className="px-6 py-2.5 bg-purple-50 text-purple-700 rounded-lg font-bold flex justify-center items-center gap-2 hover:bg-purple-100 transition"
-                    >
-                      <FaCommentDots /> Message rapide
                     </button>
 
                     <button
                       onClick={() =>
                         window.open(`/patient/${dataToShow.id}`, "_blank")
                       }
-                      className="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-lg font-bold flex justify-center items-center gap-2 hover:bg-gray-200 transition"
+                      className="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-lg font-bold flex justify-center items-center gap-2 hover:bg-gray-200 transition shadow-sm"
                     >
                       <FaHistory /> Historique 360°
                     </button>
-                  </div>
-                </>
-              )}
+                  </>
+                )}
+
+                {/* 🔵 BOUTON COPIER : Toujours présent (connu ou inconnu) */}
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(dataToShow.number);
+                    alert("Numéro copié : " + dataToShow.number);
+                  }}
+                  className="px-6 py-2.5 bg-emerald-50 text-emerald-700 rounded-lg font-bold flex justify-center items-center gap-2 hover:bg-emerald-100 transition shadow-sm"
+                >
+                  <FaCopy /> Copier le numéro
+                </button>
+
+              </div>
             </div>
           );
         })()}
@@ -431,16 +486,28 @@ const handleDialCall = async () => {
           onChange={(e) => setCallNote(e.target.value)}
         />
 
-{/* --- ÉCRAN DU CLAVIER --- */}
+        {/* --- ÉCRAN DU CLAVIER --- */}
         <div className="mb-6 mt-4">
           <div className="w-full h-14 bg-white border border-gray-200 rounded-xl flex items-center justify-between px-4 mb-2 shadow-sm">
-            <span className="text-xl font-semibold tracking-widest text-gray-800">
-              {dialedNumber || "..."}
-            </span>
+<input
+              type="text"
+              placeholder="..."
+              value={dialedNumber}
+              disabled={!!activeCall || isRinging}
+              onChange={(e) => {
+                // 🔴 NOUVEAU FILTRE STRICT : On supprime tout ce qui n'est pas un chiffre (0 à 9)
+                const cleanedValue = e.target.value.replace(/[^0-9]/g, "");
+                
+                if (cleanedValue.length <= 15) {
+                  setDialedNumber(cleanedValue);
+                }
+              }}
+              className="flex-1 bg-transparent text-xl font-semibold tracking-widest text-gray-800 focus:outline-none w-full disabled:text-gray-400"
+            />
             {dialedNumber && (
-              <button 
+              <button
                 onClick={() => setDialedNumber((prev) => prev.slice(0, -1))}
-                className="text-gray-400 hover:text-red-500 font-bold text-xl"
+                className="text-gray-400 hover:text-red-500 font-bold text-xl ml-2 flex-shrink-0"
               >
                 ⌫
               </button>
@@ -456,8 +523,8 @@ const handleDialCall = async () => {
               onClick={() => handleKeypadPress(key)}
               disabled={!!activeCall || isRinging}
               className={`py-3 rounded-xl font-bold text-lg transition shadow-sm border border-gray-100 
-                ${activeCall || isRinging 
-                  ? "bg-gray-50 text-gray-300 cursor-not-allowed" 
+                ${activeCall || isRinging
+                  ? "bg-gray-50 text-gray-300 cursor-not-allowed"
                   : "bg-white text-gray-700 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 active:bg-blue-100"}`}
             >
               {key}
@@ -465,16 +532,17 @@ const handleDialCall = async () => {
           ))}
         </div>
 
-        {/* --- BOUTON APPELER / RACCROCHER --- */}
+{/* --- BOUTON APPELER / RACCROCHER --- */}
         {!activeCall ? (
           <button
             onClick={handleDialCall}
-            disabled={!dialedNumber}
+            // 🔴 NOUVELLE RÈGLE : Désactivé si on a moins de 8 chiffres
+            disabled={dialedNumber.length < 8}
             className={`w-full py-4 rounded-xl font-bold flex justify-center items-center gap-2 transition shadow-sm ${
-              dialedNumber 
-                ? "bg-green-600 text-white hover:bg-green-700" 
-                : "bg-green-100 text-green-400 cursor-not-allowed"
-            }`}
+              dialedNumber.length >= 8
+              ? "bg-green-600 text-white hover:bg-green-700"
+              : "bg-green-100 text-green-400 cursor-not-allowed"
+              }`}
           >
             <FaPhone /> Appeler
           </button>
@@ -488,59 +556,6 @@ const handleDialCall = async () => {
           </button>
         )}
       </div>
-
-      {/* 🟢 MODALE MESSAGE RAPIDE EN SURIMPRESSION */}
-      {isMessageModalOpen && activeCall && (
-        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
-            <div className="bg-purple-600 p-4 flex justify-between items-center text-white">
-              <h3 className="font-bold text-lg flex items-center gap-2">
-                <FaCommentDots /> Message au médecin
-              </h3>
-              <button
-                onClick={() => setIsMessageModalOpen(false)}
-                className="hover:text-gray-200 transition"
-              >
-                <FaTimes />
-              </button>
-            </div>
-            <div className="p-6">
-              {/* 🟢 NOUVEL AFFICHAGE DU DESTINATAIRE */}
-              <div className="flex items-center gap-2 mb-4 bg-purple-50 p-3 rounded-lg border border-purple-100">
-                <span className="text-sm text-purple-700 font-medium">
-                  Sera envoyé au :
-                </span>
-                <span className="text-sm font-bold text-purple-900 bg-purple-200/70 px-2.5 py-1 rounded-md flex items-center gap-2">
-                  👨‍⚕️ Médecin traitant
-                </span>
-              </div>
-
-              <textarea
-                value={messageContent}
-                onChange={(e) => setMessageContent(e.target.value)}
-                placeholder="Ex: M. Dupont a encore des douleurs au genou..."
-                className="w-full h-32 p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none resize-none mb-4 text-sm"
-                autoFocus
-              />
-              <div className="flex justify-end gap-3">
-                <button
-                  onClick={() => setIsMessageModalOpen(false)}
-                  className="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg font-semibold transition"
-                >
-                  Annuler
-                </button>
-                <button
-                  onClick={handleSendMessage}
-                  disabled={isSending || !messageContent.trim()}
-                  className={`px-4 py-2 text-white rounded-lg font-semibold transition ${isSending || !messageContent.trim() ? "bg-purple-300 cursor-not-allowed" : "bg-purple-600 hover:bg-purple-700"}`}
-                >
-                  {isSending ? "Envoi..." : "Envoyer la consigne"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div> // Fin du div principal <div className="flex flex-1...">
   );
 }
