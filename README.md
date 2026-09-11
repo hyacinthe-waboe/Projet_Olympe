@@ -85,8 +85,8 @@ Prévoir **Git**, **PHP 8.2 ou supérieur**, **Composer**, **Node.js avec npm** 
 ### 1. Récupérer le projet
 
 ```bash
-git clone https://github.com/hyacinthe-waboe/Projet_Olympe.git
-cd Projet_Olympe
+git clone https://github.com/hyacinthe-waboe/projet-olympe.git
+cd projet-olympe
 ```
 
 ### 2. Configurer la base de données
